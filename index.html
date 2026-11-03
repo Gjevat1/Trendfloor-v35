@@ -94,7 +94,7 @@ function show(m){
 document.querySelectorAll('.tile').forEach(b=>b.onclick=()=>{location.hash=b.dataset.m});
 $('back').onclick=()=>{if(location.hash==='#zeit'&&Zeit.back())return;if(location.hash==='#kontakt'&&Kontakt.back())return;if(location.hash==='#mat'&&Mat.back())return;if(location.hash==='#regie'&&Regie.back())return;location.hash=''};
 addEventListener('hashchange',()=>show(location.hash.slice(1)));
-$('closeBtn').onclick=()=>{window.close();setTimeout(()=>{if(!document.hidden)alert('Zum Beenden bitte die Home-Taste oder die Zurück-Geste des Handys verwenden.')},300)};
+$('closeBtn').onclick=()=>{window.close()};
 function net(){const on=navigator.onLine;$('dot').className='dot '+(on?'on':'off');$('st').textContent=on?'Online':'Offline – alles funktioniert weiter';}
 addEventListener('online',net);addEventListener('offline',net);net();show(location.hash.slice(1));
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
