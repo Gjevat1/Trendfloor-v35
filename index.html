@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="de"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0659AA">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<title>Trendfloor</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;font-family:system-ui,Roboto,Arial,sans-serif;background:#f3f6fa;color:#1a1a1a}
+#app{max-width:560px;margin:0 auto;height:100%;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 14px calc(env(safe-area-inset-bottom) + 14px)}
+header{background:#fff;border-radius:0 0 16px 16px;padding:8px 10px;text-align:center}
+header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
+.grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr auto;gap:14px;margin:14px 0;flex:1;min-height:340px}
+.tile{border:0;border-radius:18px;color:#fff;font-size:clamp(1.1rem,4.6vw,1.5rem);font-weight:700;padding:14px 6px 14px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:8px;box-shadow:0 4px 10px rgba(0,0,0,.3);cursor:pointer;min-height:0}
+.tile:active{transform:scale(.97)}
+.ic{flex:1;width:74%;min-height:70px;background-position:center;background-repeat:no-repeat;background-size:contain}
+.tile.wide{grid-column:1/3;flex-direction:row;justify-content:center;gap:16px;padding:16px}.tile.wide svg{width:54px;height:54px;fill:none;stroke:#fff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.kont{background:linear-gradient(#2fa7b0,#0e7c86)}
+.zeit{background:linear-gradient(#3f86d0,#0659AA)}.mat{background:linear-gradient(#5dbb67,#2e8b3e)}
+.regie{background:linear-gradient(#f4ae3a,#e06f1f)}.fahrt{background:linear-gradient(#8a6bc8,#5a3fa3)}
+.close{border:0;border-radius:14px;background:linear-gradient(#8a95a3,#6b7683);color:#fff;font-size:1.05rem;font-weight:700;padding:18px;font-size:1.2rem;width:100%;cursor:pointer}
+.status{margin-top:auto;padding-top:14px;text-align:center;font-size:.8rem;color:#5b6572}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:#999}
+.dot.on{background:#1DB14C}.dot.off{background:#e06f1f}
+.bar{display:flex;align-items:center;gap:10px;color:#fff;padding:14px;border-radius:0 0 16px 16px;font-weight:700;font-size:1.15rem}
+.bar button{background:rgba(255,255,255,.2);border:0;color:#fff;font-size:1.4rem;border-radius:10px;width:42px;height:42px}
+.card{background:#fff;border-radius:16px;padding:22px;margin-top:18px;line-height:1.5;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.hide{display:none!important}
+</style></head><body>
+<div id="app">
+ <div id="home" style="display:flex;flex-direction:column;flex:1;min-height:0">
+  <header><img src="logo.jpg" alt="Trendfloor – mein Raumausstatter" onerror="var l=['logo.png','icons/logo.jpg','icons/logo.png'],i=+(this.dataset.i||0);if(i<l.length){this.dataset.i=i+1;this.src=l[i]}else{this.replaceWith(document.createTextNode(this.alt))}"></header>
+  <div class="grid">
+   <button class="tile zeit" data-m="zeit"><span class="ic" style="background-image:url(zeit.png),url(icons/zeit.png)"></span>Zeiterfassung</button>
+   <button class="tile mat" data-m="mat"><span class="ic" style="background-image:url(mat.png),url(icons/mat.png)"></span>Materialschein</button>
+   <button class="tile regie" data-m="regie"><span class="ic" style="background-image:url(regie.png),url(icons/regie.png)"></span>Regiebericht</button>
+   <button class="tile fahrt" data-m="fahrt"><span class="ic" style="background-image:url(fahrt.png),url(icons/fahrt.png)"></span>Fahrtenbuch</button>
+  <button class="tile wide kont" data-m="kontakt"><svg viewBox="0 0 64 64"><rect x="12" y="6" width="42" height="52" rx="5"/><path d="M12 18h-4M12 32h-4M12 46h-4"/><circle cx="33" cy="26" r="7"/><path d="M21 46c0-8 5-12 12-12s12 4 12 12"/></svg>Kontakte &amp; Infos</button>
+  </div>
+  <button class="close" id="closeBtn">✕&nbsp; Schließen</button>
+ </div>
+ <div id="mod" class="hide">
+  <div class="bar" id="modbar"><button id="back" aria-label="Zurück">←</button><span id="modtitle"></span></div>
+  <div class="card" id="modbody"></div>
+ </div>
+ <div class="status"><span class="dot" id="dot"></span><span id="st"></span> · Version 035</div>
+</div>
+<script src="jspdf.min.js"></script>
+<script src="zeit.js"></script>
+<script src="kontakt.js"></script>
+<script src="material.js"></script>
+<script src="regie.js"></script>
+<script>
+const MODS={zeit:['Zeiterfassung','#0659AA'],mat:['Materialschein','#2e8b3e'],regie:['Regiebericht','#e06f1f'],fahrt:['Fahrtenbuch','#5a3fa3'],kontakt:['Kontakte & Infos','#0e7c86']};
+const $=id=>document.getElementById(id);
+function show(m){
+ if(!MODS[m]){$('home').classList.remove('hide');$('mod').classList.add('hide');return;}
+ $('home').classList.add('hide');$('mod').classList.remove('hide');
+ $('modbar').style.background=MODS[m][1];$('modtitle').textContent=MODS[m][0];
+ $('modbody').classList.toggle('card',m!=='zeit'&&m!=='kontakt'&&m!=='mat');if(m==='zeit')Zeit.open($('modbody'),$('modtitle'));else if(m==='kontakt')Kontakt.open($('modbody'),$('modtitle'));else if(m==='mat')Mat.open($('modbody'),$('modtitle'));else if(m==='regie')Regie.open($('modbody'),$('modtitle'));else $('modbody').innerHTML='<b>'+MODS[m][0]+'</b><br>Dieses Modul wird als Nächstes eingebaut.';
+}
+document.querySelectorAll('.tile').forEach(b=>b.onclick=()=>{location.hash=b.dataset.m});
+$('back').onclick=()=>{if(location.hash==='#zeit'&&Zeit.back())return;if(location.hash==='#kontakt'&&Kontakt.back())return;if(location.hash==='#mat'&&Mat.back())return;if(location.hash==='#regie'&&Regie.back())return;location.hash=''};
+addEventListener('hashchange',()=>show(location.hash.slice(1)));
+$('closeBtn').onclick=()=>{window.close();setTimeout(()=>{if(!document.hidden)alert('Zum Beenden bitte die Home-Taste oder die Zurück-Geste des Handys verwenden.')},300)};
+function net(){const on=navigator.onLine;$('dot').className='dot '+(on?'on':'off');$('st').textContent=on?'Online':'Offline – alles funktioniert weiter';}
+addEventListener('online',net);addEventListener('offline',net);net();show(location.hash.slice(1));
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+</script></body></html>
