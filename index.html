@@ -16,7 +16,7 @@ header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
 .tile{border:0;border-radius:18px;color:#fff;font-size:clamp(1.1rem,4.6vw,1.5rem);font-weight:700;padding:14px 6px 14px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:8px;box-shadow:0 4px 10px rgba(0,0,0,.3);cursor:pointer;min-height:0}
 .tile:active{transform:scale(.97)}
 .ic{flex:1;width:74%;min-height:70px;background-position:center;background-repeat:no-repeat;background-size:contain}
-.tile.wide{grid-column:1/3;flex-direction:row;justify-content:center;gap:16px;padding:16px}.tile.wide svg{width:54px;height:54px;fill:none;stroke:#fff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.kont{background:linear-gradient(#2fa7b0,#0e7c86)}
+.tile.wide{grid-column:1/3;flex-direction:row;justify-content:center;gap:16px;padding:16px}.tile.wide svg{width:54px;height:54px;fill:none;stroke:#fff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.kont{background:linear-gradient(#2fa7b0,#0e7c86)}.bak{background:linear-gradient(#6b7685,#444d5a)}.tile.wide .em{font-size:2.2rem;line-height:1}
 .zeit{background:linear-gradient(#3f86d0,#0659AA)}.mat{background:linear-gradient(#5dbb67,#2e8b3e)}
 .regie{background:linear-gradient(#f4ae3a,#e06f1f)}.fahrt{background:linear-gradient(#8a6bc8,#5a3fa3)}
 .close{border:0;border-radius:14px;background:linear-gradient(#8a95a3,#6b7683);color:#fff;font-size:1.05rem;font-weight:700;padding:18px;font-size:1.2rem;width:100%;cursor:pointer}
@@ -37,6 +37,7 @@ header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
    <button class="tile regie" data-m="regie"><span class="ic" style="background-image:url(regie.png),url(icons/regie.png)"></span>Regiebericht</button>
    <button class="tile fahrt" data-m="fahrt"><span class="ic" style="background-image:url(fahrt.png),url(icons/fahrt.png)"></span>Fahrtenbuch</button>
   <button class="tile wide kont" data-m="kontakt"><svg viewBox="0 0 64 64"><rect x="12" y="6" width="42" height="52" rx="5"/><path d="M12 18h-4M12 32h-4M12 46h-4"/><circle cx="33" cy="26" r="7"/><path d="M21 46c0-8 5-12 12-12s12 4 12 12"/></svg>Kontakte &amp; Infos</button>
+  <button class="tile wide bak" data-m="backup"><span class="em">💾</span>Datensicherung</button>
   </div>
   <button class="close" id="closeBtn">✕&nbsp; Schließen</button>
  </div>
@@ -44,7 +45,7 @@ header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
   <div class="bar" id="modbar"><button id="back" aria-label="Zurück">←</button><span id="modtitle"></span></div>
   <div class="card" id="modbody"></div>
  </div>
- <div class="status"><span class="dot" id="dot"></span><span id="st"></span> · Version 036</div>
+ <div class="status"><span class="dot" id="dot"></span><span id="st"></span> · Version 037</div>
 </div>
 <script src="jspdf.min.js"></script>
 <script src="zeit.js"></script>
@@ -52,13 +53,43 @@ header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
 <script src="material.js"></script>
 <script src="regie.js"></script>
 <script>
-const MODS={zeit:['Zeiterfassung','#0659AA'],mat:['Materialschein','#2e8b3e'],regie:['Regiebericht','#e06f1f'],fahrt:['Fahrtenbuch','#5a3fa3'],kontakt:['Kontakte & Infos','#0e7c86']};
+const MODS={zeit:['Zeiterfassung','#0659AA'],mat:['Materialschein','#2e8b3e'],regie:['Regiebericht','#e06f1f'],fahrt:['Fahrtenbuch','#5a3fa3'],kontakt:['Kontakte & Infos','#0e7c86'],backup:['Datensicherung','#444d5a']};
+
+const Backup=(()=>{
+const LAST='tf_lastbackup',p2=n=>String(n).padStart(2,'0');
+const keys=()=>Object.keys(localStorage).filter(k=>k.startsWith('tf_')&&k!==LAST);
+const stamp=()=>{const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'_'+p2(d.getHours())+p2(d.getMinutes())};
+const dmy=t=>{const d=new Date(t);return isNaN(d)?'':p2(d.getDate())+'.'+p2(d.getMonth()+1)+'.'+d.getFullYear()+' '+p2(d.getHours())+':'+p2(d.getMinutes())};
+function make(){const data={};keys().forEach(k=>data[k]=localStorage.getItem(k));const created=new Date().toISOString();
+const nm='Trendfloor-Sicherung_'+stamp()+'.json';return{nm,n:Object.keys(data).length,file:new Blob([JSON.stringify({app:'Trendfloor',version:37,created,data})],{type:'application/json'}),created}}
+function mark(c){try{localStorage.setItem(LAST,c)}catch(e){}}
+let root,note='';
+function view(){const l=localStorage.getItem(LAST);
+root.innerHTML='<div class="zc" style="display:flex;flex-direction:column;gap:12px"><div class="zcard">Alle Daten (Zeiterfassung, Material, Regieberichte, Kontakte) liegen nur auf diesem Handy. Mach regelmäßig eine Sicherung und bewahre die Datei außerhalb der App auf (z. B. Google Drive oder per Mail an dich selbst).<br><br><b>Letzte Sicherung:</b> '+(l?dmy(l):'noch keine')+'</div>'
++'<button class="zb g" style="height:54px" id="bk-save">💾 Sicherung speichern</button>'
++'<button class="zb" style="height:54px" id="bk-share">📤 Sicherung senden / teilen</button>'
++'<button class="zb r" style="height:54px" id="bk-restore">♻ Sicherung wiederherstellen</button>'
++'<input type="file" id="bk-file" accept=".json,application/json" style="display:none">'
++(note?'<div class="zcard"><small>'+note+'</small></div>':'')+'</div>';
+document.getElementById('bk-save').onclick=()=>{const b=make(),a=document.createElement('a');a.href=URL.createObjectURL(b.file);a.download=b.nm;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);mark(b.created);note='Gesichert: '+b.n+' Datenbereiche in '+b.nm+' (Ordner „Downloads“).';view()};
+document.getElementById('bk-share').onclick=()=>{const b=make(),f=new File([b.file],b.nm,{type:'application/json'});
+if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f],title:'Trendfloor Sicherung',text:'Trendfloor Datensicherung'}).then(()=>{mark(b.created);note='Sicherung gesendet.';view()}).catch(()=>{})}
+else{note='Teilen wird hier nicht unterstützt. Bitte „Sicherung speichern“ verwenden.';view()}};
+document.getElementById('bk-restore').onclick=()=>{if(confirm('Achtung: Alle Daten in der App werden durch die Sicherung ersetzt. Vorher bitte eine aktuelle Sicherung speichern. Fortfahren?'))document.getElementById('bk-file').click()};
+document.getElementById('bk-file').onchange=ev=>{const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{let o;try{o=JSON.parse(r.result)}catch(e){return alert('Datei konnte nicht gelesen werden.')}
+if(!o||o.app!=='Trendfloor'||!o.data||typeof o.data!=='object')return alert('Das ist keine Trendfloor-Sicherung.');
+const ks=Object.keys(o.data).filter(k=>k.startsWith('tf_')&&typeof o.data[k]==='string');if(!ks.length)return alert('Die Sicherung enthält keine Daten.');
+if(!confirm('Sicherung vom '+dmy(o.created)+' mit '+ks.length+' Datenbereichen einlesen? Die aktuellen Daten werden ersetzt.'))return;
+try{keys().forEach(k=>localStorage.removeItem(k));ks.forEach(k=>localStorage.setItem(k,o.data[k]))}catch(e){return alert('Wiederherstellen fehlgeschlagen: '+e.message)}
+alert('Wiederhergestellt. Die App wird neu geladen.');location.hash='';location.reload()};r.readAsText(f)}}
+return{open(r){root=r;note='';view()}}})();
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
 const $=id=>document.getElementById(id);
 function show(m){
  if(!MODS[m]){$('home').classList.remove('hide');$('mod').classList.add('hide');return;}
  $('home').classList.add('hide');$('mod').classList.remove('hide');
  $('modbar').style.background=MODS[m][1];$('modtitle').textContent=MODS[m][0];
- $('modbody').classList.toggle('card',m!=='zeit'&&m!=='kontakt'&&m!=='mat');if(m==='zeit')Zeit.open($('modbody'),$('modtitle'));else if(m==='kontakt')Kontakt.open($('modbody'),$('modtitle'));else if(m==='mat')Mat.open($('modbody'),$('modtitle'));else if(m==='regie')Regie.open($('modbody'),$('modtitle'));else $('modbody').innerHTML='<b>'+MODS[m][0]+'</b><br>Dieses Modul wird als Nächstes eingebaut.';
+ $('modbody').classList.toggle('card',m!=='zeit'&&m!=='kontakt'&&m!=='mat');if(m==='zeit')Zeit.open($('modbody'),$('modtitle'));else if(m==='kontakt')Kontakt.open($('modbody'),$('modtitle'));else if(m==='mat')Mat.open($('modbody'),$('modtitle'));else if(m==='regie')Regie.open($('modbody'),$('modtitle'));else if(m==='backup')Backup.open($('modbody'));else $('modbody').innerHTML='<b>'+MODS[m][0]+'</b><br>Dieses Modul wird als Nächstes eingebaut.';
 }
 document.querySelectorAll('.tile').forEach(b=>b.onclick=()=>{location.hash=b.dataset.m});
 $('back').onclick=()=>{if(location.hash==='#zeit'&&Zeit.back())return;if(location.hash==='#kontakt'&&Kontakt.back())return;if(location.hash==='#mat'&&Mat.back())return;if(location.hash==='#regie'&&Regie.back())return;location.hash=''};
