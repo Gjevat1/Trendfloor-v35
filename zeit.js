@@ -121,10 +121,14 @@ return`<div class="zc"><div class="zrow"><button class="zb" data-a="wnav" data-v
 const WC=[['Datum',14],['Tag',10],['Kundenname',56],['Ob-Nr',18],['Std.',14],['von-bis',28],['Mittagspause',28],['Arbeitsbeschreibung',80],['Auto',29]],WCEN=[0,1,3,4,5,6];
 const wpr=e=>{const p=+e.pause||0;if(!p)return'';const x=dt(e.date).getDay()===5?D.std.fr:D.std.md,s=x.pf?tm(x.pf):720;if(s<tm(e.start)||s+p>tm(e.end))return p+' min';return ft(s)+'  -  '+ft(s+p)};
 const wbText=p=>{const w=Object.assign({name:1,client:1,addr:1,tel:0},p.wb||{});return[w.client&&p.client,w.name&&p.name,w.addr&&p.addr,w.tel&&p.tel].filter(Boolean).join(', ')};
-function wkData(mo){return[0,1,2,3,4,5,6].map(i=>{const s=addD(mo,i),es=on(s),n=Math.max(es.length,i>=5?2:4),q=dt(s),rows=[];
-for(let r=0;r<n;r++){const e=es[r],p=e&&D.projects.find(x=>x.id===e.projectId),t=['',TAGE[q.getDay()],'','','','','','',''];if(r===0)t[0]=p2(q.getDate());
-if(e){t[2]=p?wbText(p):'';t[3]=p?p.nr:'';t[4]=ft(Math.round(hrs(e)*60));t[5]=e.start+'  -  '+e.end;t[6]=wpr(e);
-t[7]=[e.tasks.join(', '),e.note].filter(Boolean).join(' - ');const au=x=>x.auto||(D.set.hasCar?D.set.car||'':'');if(r===0||au(e)!==au(es[r-1]))t[8]=au(e)}
+let _wm=null;
+const wrapT=txt=>{if(!txt)return[];try{if(!_wm){_wm=new window.jspdf.jsPDF();_wm.setFont('helvetica','normal');_wm.setFontSize(8.5)}return _wm.splitTextToSize(txt,WC[7][1]-3)}catch(x){return(txt.match(/.{1,45}(\s|$)/g)||[txt]).map(v=>v.trim())}};
+function wkData(mo){return[0,1,2,3,4,5,6].map(i=>{const s=addD(mo,i),es=on(s),base=i>=5?2:4,n=Math.max(es.length,base),k=es.length?Math.max(1,Math.floor(n/es.length)):1,q=dt(s),rows=[],N=Math.max(n,es.length*k);
+const au=x=>x.auto||(D.set.hasCar?D.set.car||'':'');
+for(let r=0;r<N;r++){const ei=es.length?Math.floor(r/k):-1,e=ei>=0&&ei<es.length?es[ei]:null,j=e?r-ei*k:0,t=['',TAGE[q.getDay()],'','','','','','',''];if(r===0)t[0]=p2(q.getDate());
+if(e){const p=D.projects.find(x=>x.id===e.projectId);
+if(j===0){t[2]=p?wbText(p):'';t[3]=p?p.nr:'';t[4]=ft(Math.round(hrs(e)*60));t[5]=e.start+'  -  '+e.end;t[6]=wpr(e);if(ei===0||au(e)!==au(es[ei-1]))t[8]=au(e)}
+const L=wrapT([e.tasks.join(', '),e.note].filter(Boolean).join(' - '));t[7]=j<k-1?(L[j]||''):L.slice(k-1).join(' ')}
 rows.push(t)}return rows})}
 function buildPdf(mo){const{jsPDF}=window.jspdf,d=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'}),th=dt(addD(mo,3)),C=WC,cen=WCEN,W=277,x0=10;let y=0;
 const hdr=()=>{let x=x0;d.setFont('helvetica','bold');d.setFontSize(8.5);d.setLineWidth(.6);C.forEach(c=>{d.rect(x,y,c[1],7,'S');d.text(c[0],x+c[1]/2,y+4.8,{align:'center'});x+=c[1]});y+=7;d.setFont('helvetica','normal')};
