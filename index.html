@@ -24,7 +24,7 @@ header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:#999}
 .dot.on{background:#1DB14C}.dot.off{background:#e06f1f}
 .bar{display:flex;align-items:center;gap:10px;color:#fff;padding:14px;border-radius:0 0 16px 16px;font-weight:700;font-size:1.15rem}
-.bar button{background:rgba(255,255,255,.2);border:0;color:#fff;font-size:1.4rem;border-radius:10px;width:42px;height:42px}
+.bar button{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.2);border:0;color:#fff;font-size:1.4rem;border-radius:10px;width:42px;height:42px}
 .card{background:#fff;border-radius:16px;padding:22px;margin-top:18px;line-height:1.5;box-shadow:0 1px 4px rgba(0,0,0,.12)}
 .hide{display:none!important}
 </style></head><body>
@@ -37,15 +37,14 @@ header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
    <button class="tile regie" data-m="regie"><span class="ic" style="background-image:url(regie.png),url(icons/regie.png)"></span>Regiebericht</button>
    <button class="tile fahrt" data-m="fahrt"><span class="ic" style="background-image:url(fahrt.png),url(icons/fahrt.png)"></span>Fahrtenbuch</button>
   <button class="tile wide kont" data-m="kontakt"><svg viewBox="0 0 64 64"><rect x="12" y="6" width="42" height="52" rx="5"/><path d="M12 18h-4M12 32h-4M12 46h-4"/><circle cx="33" cy="26" r="7"/><path d="M21 46c0-8 5-12 12-12s12 4 12 12"/></svg>Kontakte &amp; Infos</button>
-  <button class="tile wide bak" data-m="backup"><span class="em">💾</span>Datensicherung</button>
+  <button class="tile wide bak" data-m="backup"><span class="em">⚙</span>Einstellungen</button>
   </div>
-  <button class="close" id="closeBtn">✕&nbsp; Schließen</button>
  </div>
  <div id="mod" class="hide">
-  <div class="bar" id="modbar"><button id="back" aria-label="Zurück">←</button><span id="modtitle"></span></div>
+  <div class="bar" id="modbar"><button id="back" aria-label="Zurück"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12H5M11.5 5.5L5 12l6.5 6.5"/></svg></button><span id="modtitle"></span></div>
   <div class="card" id="modbody"></div>
  </div>
- <div class="status"><span class="dot" id="dot"></span><span id="st"></span> · Version 037</div>
+ <div class="status"><span class="dot" id="dot"></span><span id="st"></span> · Version 038</div>
 </div>
 <script src="jspdf.min.js"></script>
 <script src="zeit.js"></script>
@@ -53,24 +52,26 @@ header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
 <script src="material.js"></script>
 <script src="regie.js"></script>
 <script>
-const MODS={zeit:['Zeiterfassung','#0659AA'],mat:['Materialschein','#2e8b3e'],regie:['Regiebericht','#e06f1f'],fahrt:['Fahrtenbuch','#5a3fa3'],kontakt:['Kontakte & Infos','#0e7c86'],backup:['Datensicherung','#444d5a']};
+const MODS={zeit:['Zeiterfassung','#0659AA'],mat:['Materialschein','#2e8b3e'],regie:['Regiebericht','#e06f1f'],fahrt:['Fahrtenbuch','#5a3fa3'],kontakt:['Kontakte & Infos','#0e7c86'],backup:['Einstellungen','#444d5a']};
 
+try{const z0=localStorage.getItem('tf_scale');if(z0)document.documentElement.style.zoom=z0}catch(e){}
 const Backup=(()=>{
 const LAST='tf_lastbackup',p2=n=>String(n).padStart(2,'0');
 const keys=()=>Object.keys(localStorage).filter(k=>k.startsWith('tf_')&&k!==LAST);
 const stamp=()=>{const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'_'+p2(d.getHours())+p2(d.getMinutes())};
 const dmy=t=>{const d=new Date(t);return isNaN(d)?'':p2(d.getDate())+'.'+p2(d.getMonth()+1)+'.'+d.getFullYear()+' '+p2(d.getHours())+':'+p2(d.getMinutes())};
 function make(){const data={};keys().forEach(k=>data[k]=localStorage.getItem(k));const created=new Date().toISOString();
-const nm='Trendfloor-Sicherung_'+stamp()+'.json';return{nm,n:Object.keys(data).length,file:new Blob([JSON.stringify({app:'Trendfloor',version:37,created,data})],{type:'application/json'}),created}}
+const nm='Trendfloor-Sicherung_'+stamp()+'.json';return{nm,n:Object.keys(data).length,file:new Blob([JSON.stringify({app:'Trendfloor',version:38,created,data})],{type:'application/json'}),created}}
 function mark(c){try{localStorage.setItem(LAST,c)}catch(e){}}
 let root,note='';
 function view(){const l=localStorage.getItem(LAST);
-root.innerHTML='<div class="zc" style="display:flex;flex-direction:column;gap:12px"><div class="zcard">Alle Daten (Zeiterfassung, Material, Regieberichte, Kontakte) liegen nur auf diesem Handy. Mach regelmäßig eine Sicherung und bewahre die Datei außerhalb der App auf (z. B. Google Drive oder per Mail an dich selbst).<br><br><b>Letzte Sicherung:</b> '+(l?dmy(l):'noch keine')+'</div>'
+root.innerHTML='<div class="zc" style="display:flex;flex-direction:column;gap:12px"><div class="zcard"><b>Anzeigegröße</b><br><small>Gilt nur für dieses Handy.</small><div style="display:flex;gap:6px;margin-top:8px">'+[['Klein','0.8'],['Mittel','0.9'],['Normal','1'],['Groß','1.15']].map(a=>'<button class="zb '+((localStorage.getItem('tf_scale')||'1')===a[1]?'g':'l')+'" style="flex:1;padding:0 4px" data-sz="'+a[1]+'">'+a[0]+'</button>').join('')+'</div></div><div class="zcard">Datensicherung: Alle Daten (Zeiterfassung, Material, Regieberichte, Kontakte) liegen nur auf diesem Handy. Mach regelmäßig eine Sicherung und bewahre die Datei außerhalb der App auf (z. B. Google Drive oder per Mail an dich selbst).<br><br><b>Letzte Sicherung:</b> '+(l?dmy(l):'noch keine')+'</div>'
 +'<button class="zb g" style="height:54px" id="bk-save">💾 Sicherung speichern</button>'
 +'<button class="zb" style="height:54px" id="bk-share">📤 Sicherung senden / teilen</button>'
 +'<button class="zb r" style="height:54px" id="bk-restore">♻ Sicherung wiederherstellen</button>'
 +'<input type="file" id="bk-file" accept=".json,application/json" style="display:none">'
 +(note?'<div class="zcard"><small>'+note+'</small></div>':'')+'</div>';
+root.querySelectorAll('[data-sz]').forEach(b=>b.onclick=()=>{try{localStorage.setItem('tf_scale',b.dataset.sz)}catch(e){}document.documentElement.style.zoom=b.dataset.sz;view()});
 document.getElementById('bk-save').onclick=()=>{const b=make(),a=document.createElement('a');a.href=URL.createObjectURL(b.file);a.download=b.nm;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);mark(b.created);note='Gesichert: '+b.n+' Datenbereiche in '+b.nm+' (Ordner „Downloads“).';view()};
 document.getElementById('bk-share').onclick=()=>{const b=make(),f=new File([b.file],b.nm,{type:'application/json'});
 if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f],title:'Trendfloor Sicherung',text:'Trendfloor Datensicherung'}).then(()=>{mark(b.created);note='Sicherung gesendet.';view()}).catch(()=>{})}
@@ -94,7 +95,6 @@ function show(m){
 document.querySelectorAll('.tile').forEach(b=>b.onclick=()=>{location.hash=b.dataset.m});
 $('back').onclick=()=>{if(location.hash==='#zeit'&&Zeit.back())return;if(location.hash==='#kontakt'&&Kontakt.back())return;if(location.hash==='#mat'&&Mat.back())return;if(location.hash==='#regie'&&Regie.back())return;location.hash=''};
 addEventListener('hashchange',()=>show(location.hash.slice(1)));
-$('closeBtn').onclick=()=>{window.close()};
 function net(){const on=navigator.onLine;$('dot').className='dot '+(on?'on':'off');$('st').textContent=on?'Online':'Offline – alles funktioniert weiter';}
 addEventListener('online',net);addEventListener('offline',net);net();show(location.hash.slice(1));
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');

@@ -40,7 +40,7 @@ function send(p){if(!window.jspdf)return alert('PDF-Baustein fehlt (jspdf.min.js
 const file=new File([d.output('blob')],nm,{type:'application/pdf'}),to=String(D.set.mail||'').split(/[\s,;]+/).filter(Boolean),subj='Materialschein '+[p.nr,p.client||p.name||p.addr].filter(Boolean).join(' '),body='Materialschein im Anhang.\n\n'+D.set.name;
 if(navigator.canShare&&navigator.canShare({files:[file]})){if(to.length&&navigator.clipboard)navigator.clipboard.writeText(to.join(', ')).catch(()=>{});S.note=to.length?'E-Mail-Adressen kopiert – im Feld „An“ einfügen.':'';navigator.share({files:[file],title:subj,text:body}).catch(()=>{});render()}
 else{d.save(nm);S.note='PDF gespeichert. Mail-Programm öffnet sich – PDF bitte anhängen.';render();location.href='mailto:'+to.map(encodeURIComponent).join(',')+'?'+(D.set.own?'cc='+encodeURIComponent(D.set.own)+'&':'')+'subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body)}}
-return{count(id){return(M.s[id]||[]).length},pdfFor(id){const p=Z().projects.find(x=>x.id==id);return p?{d:pdf(p),nm:fname(p)}:null},open(r,t){root=r;titleEl=t;S={q:'',pid:null,note:'',ed:null,pk:null};r.innerHTML='<div></div>';const m=r.firstChild;
+return{rows(id){return M.s[id]||[]},count(id){return(M.s[id]||[]).length},pdfFor(id){const p=Z().projects.find(x=>x.id==id);return p?{d:pdf(p),nm:fname(p)}:null},open(r,t){root=r;titleEl=t;S={q:'',pid:null,note:'',ed:null,pk:null};r.innerHTML='<div></div>';const m=r.firstChild;
 m.onclick=ev=>{const b=ev.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,D=Z(),R=()=>rowsOf(S.pid),e=S.ed;
 if(a==='mt-open'){S.pid=b.dataset.i;S.note='';scrollTo(0,0);render()}
 else if(a==='mt-row'){const i=+b.dataset.i,rs=R(),c=ev.target.closest('td'),k=c?c.cellIndex:0,l=rs[rs.length-1];
