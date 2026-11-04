@@ -4,7 +4,7 @@ const DEF={entries:[],projects:[],step:15,mu:{},cars:[],lastCar:'',set:{name:'Xh
 tasks:['Altbelag entfernen','Untergrund vorbereiten','Spachteln','Schleifen','Grundieren','Vinyl verlegen','Parkett verlegen','Laminat verlegen','Teppich verlegen','Sockelleisten montieren','Versiegeln / Lackieren','Malerarbeiten','Material laden','Aufräumen / Reinigung'],
 colleagues:[],materials:['Schleifpapier','Lack','Grundierung','Spachtelmasse','Vinylboden','Parkett','Laminat','Sockelleisten','Kleber']};
 let D=load(),view='menu',root,titleEl,S={};
-function load(){let d=JSON.parse(JSON.stringify(DEF));try{Object.assign(d,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}[['Urlaub',900001,'urlaub'],['Krankenstand',900002,'krank']].forEach(a=>{if(!d.projects.some(p=>p.id===a[1]))d.projects.push({id:a[1],name:a[0],nr:'',client:'',addr:'',tel:'',wb:{name:1,client:0,addr:0,tel:0},kind:a[2]})});return d}
+function load(){let d=JSON.parse(JSON.stringify(DEF));try{Object.assign(d,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}[['Urlaub',900001,'urlaub'],['Krankenstand',900002,'krank'],['Feiertag',900003,'feiertag']].forEach(a=>{if(!d.projects.some(p=>p.id===a[1]))d.projects.push({id:a[1],name:a[0],nr:'',client:'',addr:'',tel:'',wb:{name:1,client:0,addr:0,tel:0},kind:a[2]})});return d}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){alert('Speichern nicht möglich!')}}
 const p2=n=>String(n).padStart(2,'0'),esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 const iso=d=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
