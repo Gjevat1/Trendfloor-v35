@@ -31,6 +31,7 @@ return ch}
 const mrow=(e,m)=>({d:e.date,n:m.name,q:String(m.qty||''),u:m.unit||'',r:'',w:[D.set.name].filter(Boolean)});
 function flushMat(){const e=S.e;if(!e||!e.projectId||typeof Mat==='undefined')return;(e.material||[]).forEach(m=>{if(!m.sync){Mat.add(e.projectId,mrow(e,m));m.sync=1}})}
 function migrateMat(){if(D.migMat||typeof Mat==='undefined')return;D.entries.forEach(x=>{if(!x.projectId||!x.material)return;x.material.forEach(m=>{if(m.sync)return;const l=Mat.rows(x.projectId);if(!l.some(r=>r.d===x.date&&r.n===m.name&&String(r.q||'')===String(m.qty||'')&&(r.u||'')===(m.unit||'')))Mat.add(x.projectId,mrow(x,m));m.sync=1})});D.migMat=1;save()}
+const fdl=s=>{const q=dt(s);return TAGE[q.getDay()]+'., '+p2(q.getDate())+'.'+p2(q.getMonth()+1)+'.'+q.getFullYear()};
 function newEntry(date){date=date||iso(new Date());return Object.assign({id:0,date,projectId:'',auto:(D.set.hasCar?D.set.car:D.lastCar)||'',tasks:[],colleagues:[],material:[],note:''},stdFor(date))}
 const css=document.createElement('style');css.textContent=`
 .zc{display:flex;flex-direction:column;gap:10px;padding-top:12px}
