@@ -14,7 +14,7 @@ return`<div class="zc"><div class="zcard"><b>Kunde:</b> ${esc(p.client||'')}<br>
 <div style="overflow:auto"><table class="pv" style="width:780px;table-layout:auto"><thead><tr>${['Datum','Bezeichnung','Ausgang','Retour','Verbrauch','Arbeiter'].map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${tr}</tbody></table></div>
 ${M.done[p.id]?'<button class="zb l" style="height:50px" data-a="mt-reopen">↺ Projekt wieder öffnen</button>':'<button class="zb l" style="height:50px" data-a="mt-done">✔ Abgeschlossen</button>'}<button class="zb g" style="height:50px" data-a="mt-send">✉ Senden</button>${S.note?'<div class="zcard"><small>'+esc(S.note)+'</small></div>':''}</div>`}
 function view(){const D=Z();if(S.pid){const p=D.projects.find(x=>x.id==S.pid);if(p)return detail(p)}
-const q=S.q.toLowerCase(),L=D.projects.filter(p=>(pname(p)+' '+p.nr+' '+p.client).toLowerCase().includes(q));
+const q=S.q.toLowerCase(),L=D.projects.filter(p=>!p.kind&&(pname(p)+' '+p.nr+' '+p.client).toLowerCase().includes(q));
 return`<div class="zc"><input id="mt-q" placeholder="🔍 Projekt suchen" value="${esc(S.q)}">${L.map(p=>`<button class="zh" data-a="mt-open" data-i="${p.id}"><span class="zn" style="text-align:left">${esc(pname(p))}<br><small>${esc(p.nr||'')} ${esc(p.client||'')}</small></span><small>${(M.s[p.id]||[]).length} Pos.</small><span>›</span></button>`).join('')||'<div class="zcard">Noch keine Projekte. Projekte legst du in der Zeiterfassung an.</div>'}</div>`}
 function dlg(){const e=S.ed,r=e.r,D=Z(),ws=[...new Set([D.set.name].concat(D.colleagues))],old=e.i<rowsOf(S.pid).length;
 if(!r.w.length)r.w.push(D.set.name);

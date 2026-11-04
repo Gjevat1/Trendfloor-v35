@@ -26,7 +26,7 @@ const Regie = (() => {
     id: Date.now(), number: numberText(store.nextNo++), projectId: '', from: today(), to: today(),
     rows: [], materials: [], placeDate: '', signatureMode: 'none', signatureName: '', signatureData: '', createdAt: new Date().toISOString()
   });
-  const activeProject = () => timeData().projects || [];
+  const activeProject = () => (timeData().projects || []).filter(p => !p.kind);
   const sourceEntries = () => (timeData().entries || []).slice().sort((a,b) => String(a.date).localeCompare(String(b.date)));
   const reportRows = () => state.report.rows;
   const selectedEntryKeys = () => new Set(reportRows().map(r => String(r.sourceEntryId)));

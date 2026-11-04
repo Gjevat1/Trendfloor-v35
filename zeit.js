@@ -4,7 +4,7 @@ const DEF={entries:[],projects:[],step:15,mu:{},cars:[],lastCar:'',set:{name:'Xh
 tasks:['Altbelag entfernen','Untergrund vorbereiten','Spachteln','Schleifen','Grundieren','Vinyl verlegen','Parkett verlegen','Laminat verlegen','Teppich verlegen','Sockelleisten montieren','Versiegeln / Lackieren','Malerarbeiten','Material laden','Aufräumen / Reinigung'],
 colleagues:[],materials:['Schleifpapier','Lack','Grundierung','Spachtelmasse','Vinylboden','Parkett','Laminat','Sockelleisten','Kleber']};
 let D=load(),view='menu',root,titleEl,S={};
-function load(){let d=JSON.parse(JSON.stringify(DEF));try{Object.assign(d,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}return d}
+function load(){let d=JSON.parse(JSON.stringify(DEF));try{Object.assign(d,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}[['Urlaub',900001,'urlaub'],['Krankenstand',900002,'krank']].forEach(a=>{if(!d.projects.some(p=>p.id===a[1]))d.projects.push({id:a[1],name:a[0],nr:'',client:'',addr:'',tel:'',wb:{name:1,client:0,addr:0,tel:0},kind:a[2]})});return d}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){alert('Speichern nicht möglich!')}}
 const p2=n=>String(n).padStart(2,'0'),esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 const iso=d=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
@@ -20,6 +20,13 @@ const monday=s=>addD(s,-((dt(s).getDay()+6)%7));
 const on=s=>D.entries.filter(e=>e.date===s).sort((a,b)=>a.start.localeCompare(b.start));
 const pname=id=>{const p=D.projects.find(x=>x.id===id);return p?(p.nr?p.nr+' · ':'')+(p.name||p.addr||''):''};
 const stdFor=d=>{const x=dt(d).getDay()===5?D.std.fr:D.std.md;return{start:x.start,end:x.end,pause:x.pf&&x.pt?tm(x.pt)-tm(x.pf):0}};
+const isAbs=id=>{const p=D.projects.find(x=>x.id===id);return !!(p&&p.kind)};
+function reloadDay(){const e=S.e;if(!e)return false;let ch=false;
+if(isAbs(e.projectId)){const s=stdFor(e.date);Object.assign(e,{start:s.start,end:s.end,pause:s.pause,tasks:[],colleagues:[],material:[]});ch=true}
+const x=e.projectId?D.entries.find(q=>q.date===e.date&&q.projectId===e.projectId&&q.id!==e.id):null;
+if(x){S.e=JSON.parse(JSON.stringify(x));return true}
+if(!e.id&&e.tasks.length){e.tasks=[];ch=true}
+return ch}
 function newEntry(date){date=date||iso(new Date());return Object.assign({id:0,date,projectId:'',auto:(D.set.hasCar?D.set.car:D.lastCar)||'',tasks:[],colleagues:[],material:[],note:''},stdFor(date))}
 const css=document.createElement('style');css.textContent=`
 .zc{display:flex;flex-direction:column;gap:10px;padding-top:12px}
@@ -74,12 +81,13 @@ function rWrite(){const e=S.e,ps=D.projects.filter(p=>!p.done||p.id===e.projectI
 return`<div class="zc">
 <div class="zrow"><button class="zb" data-a="dprev">◀</button><input type="date" id="f-date" value="${e.date}"><button class="zb" data-a="dnext">▶</button></div>
 <label>Projekt</label><div class="zrow"><select id="f-proj"><option value="">– kein Projekt –</option>${ps.map(p=>`<option value="${p.id}" ${p.id===e.projectId?'selected':''}>${esc(pname(p.id))}</option>`).join('')}</select><button class="zb" data-a="newproj">+</button></div>
-${D.set.hasCar?'':`<label>Auto (Kennzeichen)</label><div class="zrow"><select id="f-car"><option value="">– kein Auto –</option>${(D.cars.includes(e.auto)||!e.auto?D.cars:D.cars.concat(e.auto)).map(c=>`<option ${c===e.auto?'selected':''}>${esc(c)}</option>`).join('')}</select><button class="zb" data-a="newcar">+</button></div>`}
+${isAbs(e.projectId)?`<div class="zsum">${esc(pname(e.projectId))}: ${fh(hrs(e))} (Sollstunden, automatisch)</div>`:`${D.set.hasCar?'':`<label>Auto (Kennzeichen)</label><div class="zrow"><select id="f-car"><option value="">– kein Auto –</option>${(D.cars.includes(e.auto)||!e.auto?D.cars:D.cars.concat(e.auto)).map(c=>`<option ${c===e.auto?'selected':''}>${esc(c)}</option>`).join('')}</select><button class="zb" data-a="newcar">+</button></div>`}
 <div class="zrow"><label style="flex:1">Zeit</label><button class="zb g" data-a="std">Standard</button></div><div class="ztime">${stepper('start','Von')}${stepper('end','Bis')}${stepper('pause','Pause')}</div>
 <div class="zsum">Arbeitszeit: ${fh(hrs(e))}</div>
 <label>Tätigkeiten</label>${picker('tasks','Tätigkeiten wählen')}
 <label>Arbeitskollegen</label>${picker('colleagues','Kollegen wählen')}
 <label>Material</label>${picker('material','Material wählen')}
+`}
 <label>Notiz</label><textarea id="f-note" rows="3">${esc(e.note)}</textarea>
 <button class="zb g" style="height:52px" data-a="save">💾 Speichern</button>
 ${e.id?'<button class="zb r" style="height:48px" data-a="del" data-i="'+e.id+'">🗑 Löschen</button>':''}</div>${modal()}`}
@@ -214,7 +222,7 @@ if(a==='rtog'){const m=mailList()[+b.i],k=S.rc.indexOf(m);k<0?S.rc.push(m):S.rc.
 if(a==='rsend'){const to=S.rc.slice();S.rc=null;return wpdf(true,to)}
 if(a==='up'||a==='dn'){adj(b.k,a==='up'?1:-1);return render()}
 if(a==='now'){const n=new Date(),m=Math.round((n.getHours()*60+n.getMinutes())/D.step)*D.step;e[b.k]=ft(Math.min(1439,m));return render()}
-if(a==='dprev'||a==='dnext'){e.date=addD(e.date,a==='dprev'?-1:1);return render()}
+if(a==='dprev'||a==='dnext'){e.date=addD(e.date,a==='dprev'?-1:1);reloadDay();return render()}
 if(a==='tog'){const l=e[b.k],i=l.indexOf(b.v);i<0?l.push(b.v):l.splice(i,1);if(S.pick&&el){const on=i<0;el.classList.toggle('on',on);el.textContent=(on?'☑ ':'☐ ')+b.v;document.querySelector('[data-a=fin]').textContent='Fertig ('+l.length+')';return}return render()}
 if(a==='mtog'){const l=e.material,i=l.findIndex(m=>m.name===b.v),st=(document.querySelector('.ml')||{}).scrollTop||0;if(i<0)l.push({name:b.v,qty:'',unit:D.mu[b.v]||D.units[0]});else l.splice(i,1);render();const m2=document.querySelector('.ml');if(m2)m2.scrollTop=st;if(i<0){const q=document.getElementById('mq-'+(l.length-1));if(q)q.focus()}return}
 if(a==='pick'){S.pick={k:b.k,q:''};return render()}
@@ -227,7 +235,7 @@ if(a==='mdel'){e.material.splice(+b.i,1);return render()}
 if(a==='newproj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.pm=true;return render()}
 if(a==='newcar'){const v=(prompt('Kennzeichen (z. B. VL 123 AB):')||'').trim().toUpperCase();if(!v)return;if(!D.cars.includes(v))D.cars.push(v);e.auto=v;save();return render()}
 if(a==='std'){Object.assign(e,stdFor(e.date));return render()}
-if(a==='save'){if(D.set.hasCar&&D.set.car&&!e.auto)e.auto=D.set.car;D.lastCar=e.auto||D.lastCar;if(tm(e.end)<=tm(e.start))return alert('„Bis“ muss nach „Von“ liegen.');if(!e.id){e.id=Date.now();D.entries.push(e)}else D.entries=D.entries.map(x=>x.id===e.id?e:x);save();S.sel=e.date;S.e=null;go('over');return}
+if(a==='save'){if(D.set.hasCar&&D.set.car&&!e.auto)e.auto=D.set.car;D.lastCar=e.auto||D.lastCar;if(!e.tasks.length&&!isAbs(e.projectId))return alert('Bitte mindestens eine Tätigkeit wählen (nur bei Urlaub und Krankenstand nicht nötig).');if(tm(e.end)<=tm(e.start))return alert('„Bis“ muss nach „Von“ liegen.');if(!e.id){e.id=Date.now();D.entries.push(e)}else D.entries=D.entries.map(x=>x.id===e.id?e:x);save();S.sel=e.date;S.e=null;go('over');return}
 if(a==='edit'){S.e=JSON.parse(JSON.stringify(D.entries.find(x=>x.id==b.i)));return go('write')}
 if(a==='del'){if(!confirm('Eintrag wirklich löschen?'))return;D.entries=D.entries.filter(x=>x.id!=b.i);save();S.e=null;return go('over')}
 if(a==='newfor'){S.e=newEntry(S.sel);return go('write')}
@@ -246,7 +254,7 @@ if(a==='rcancel'){S.ret=null;return render()}
 if(a==='rsave'){const p=D.projects.find(x=>x.id===S.ret.id);p.returns=S.ret.rows.filter(x=>(x.qty||'').trim()).map(x=>({name:x.name,qty:x.qty.trim(),unit:x.unit}));p.done=true;S.ret=null;save();return render()}
 if(a==='pall'){S.all=!S.all;return render()}}
 function onIn(ev){const i=ev.target.id,v=ev.target.value;
-if(i==='f-date'&&v){S.e.date=v}else if(i==='f-proj')S.e.projectId=v?+v:'';else if(i==='f-note')S.e.note=v;else if(i==='f-car')S.e.auto=v;else if(i==='w-name'){D.set.name=v;save()}else if(i==='w-mail'){D.set.mail=v;save()}else if(i==='m-qty')S.mq=v;else if(i==='m-sel')S.ms=v;
+if(i==='f-date'&&v){S.e.date=v;if(reloadDay())render()}else if(i==='f-proj'){S.e.projectId=v?+v:'';reloadDay();render()}else if(i==='f-note')S.e.note=v;else if(i==='f-car')S.e.auto=v;else if(i==='w-name'){D.set.name=v;save()}else if(i==='w-mail'){D.set.mail=v;save()}else if(i==='m-qty')S.mq=v;else if(i==='m-sel')S.ms=v;
 else if(i==='p-name')S.p.name=v;else if(i==='p-nr'){S.p.nr=v.replace(/\D/g,'').slice(0,6);ev.target.value=S.p.nr}else if(i==='p-ad')S.p.addr=v;else if(i==='p-tel')S.p.tel=v;else if(i==='m-unit')S.mu=v;else if(i.startsWith('mq-'))S.e.material[+i.slice(3)].qty=v;else if(i.startsWith('mu-')){const m=S.e.material[+i.slice(3)];m.unit=v;D.mu[m.name]=v;save()}else if(i==='rt-sel')S.ret.ms=v;else if(i==='rt-unit')S.ret.mu=v;else if(i==='rt-qty')S.ret.mq=v;else if(i.startsWith('rq-'))S.ret.rows[+i.slice(3)].qty=v;else if(i==='p-cl')S.p.client=v;
 else if(i==='s-hascar'){if(ev.type!=='change')return;D.set.hasCar=ev.target.checked;save();render()}
 else if(i==='s-car'){if(ev.type!=='change')return;D.set.car=v.trim().toUpperCase();ev.target.value=D.set.car;save()}
