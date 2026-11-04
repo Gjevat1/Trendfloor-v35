@@ -21,13 +21,16 @@ const on=s=>D.entries.filter(e=>e.date===s).sort((a,b)=>a.start.localeCompare(b.
 const pname=id=>{const p=D.projects.find(x=>x.id===id);return p?(p.nr?p.nr+' · ':'')+(p.name||p.addr||''):''};
 const stdFor=d=>{const x=dt(d).getDay()===5?D.std.fr:D.std.md;return{start:x.start,end:x.end,pause:x.pf&&x.pt?tm(x.pt)-tm(x.pf):0}};
 const isAbs=id=>{const p=D.projects.find(x=>x.id===id);return !!(p&&p.kind)};
-function reloadDay(){const e=S.e;if(!e)return false;let ch=false;
-if(isAbs(e.projectId)){const s=stdFor(e.date);Object.assign(e,{start:s.start,end:s.end,pause:s.pause,tasks:[],colleagues:[],material:[]});ch=true}
+function reloadDay(nav){let e=S.e;if(!e)return false;let ch=false;
 const x=e.projectId?D.entries.find(q=>q.date===e.date&&q.projectId===e.projectId&&q.id!==e.id):null;
 if(x){S.e=JSON.parse(JSON.stringify(x));return true}
+if(nav&&e.id){const n=newEntry(e.date);n.projectId=e.projectId;n.auto=e.auto;S.e=e=n;ch=true}
+if(isAbs(e.projectId)){const s=stdFor(e.date);Object.assign(e,{start:s.start,end:s.end,pause:s.pause,tasks:[],colleagues:[],material:[]});ch=true}
 if(!e.id&&(e.tasks.length||e.colleagues.length)){e.tasks=[];e.colleagues=[];ch=true}
 return ch}
-const fdl=s=>{const q=dt(s);return TAGE[q.getDay()]+'., '+p2(q.getDate())+'.'+p2(q.getMonth()+1)+'.'+q.getFullYear()};
+const mrow=(e,m)=>({d:e.date,n:m.name,q:String(m.qty||''),u:m.unit||'',r:'',w:[D.set.name].filter(Boolean)});
+function flushMat(){const e=S.e;if(!e||!e.projectId||typeof Mat==='undefined')return;(e.material||[]).forEach(m=>{if(!m.sync){Mat.add(e.projectId,mrow(e,m));m.sync=1}})}
+function migrateMat(){if(D.migMat||typeof Mat==='undefined')return;D.entries.forEach(x=>{if(!x.projectId||!x.material)return;x.material.forEach(m=>{if(m.sync)return;const l=Mat.rows(x.projectId);if(!l.some(r=>r.d===x.date&&r.n===m.name&&String(r.q||'')===String(m.qty||'')&&(r.u||'')===(m.unit||'')))Mat.add(x.projectId,mrow(x,m));m.sync=1})});D.migMat=1;save()}
 function newEntry(date){date=date||iso(new Date());return Object.assign({id:0,date,projectId:'',auto:(D.set.hasCar?D.set.car:D.lastCar)||'',tasks:[],colleagues:[],material:[],note:''},stdFor(date))}
 const css=document.createElement('style');css.textContent=`
 .zc{display:flex;flex-direction:column;gap:10px;padding-top:12px}
@@ -65,13 +68,18 @@ const css=document.createElement('style');css.textContent=`
 const stepper=(k,l)=>`<div class="zs"><small>${l}</small><button class="zb" data-a="up" data-k="${k}">▲</button><b>${k==='pause'?S.e.pause+' min':S.e[k]}</b><button class="zb" data-a="dn" data-k="${k}">▼</button>${k==='pause'?'':`<button class="zb g" data-a="now" data-k="${k}">Jetzt</button>`}</div>`;
 const chips=(list,sel,k)=>`<div class="chips">${list.map(v=>`<button class="chip ${sel.includes(v)?'on':''}" data-a="tog" data-k="${k}" data-v="${esc(v)}">${esc(v)}</button>`).join('')}<button class="chip add" data-a="addlist" data-k="${k}">+ neu</button></div>`;
 const TIT={material:'Material wählen',tasks:'Tätigkeiten wählen',colleagues:'Arbeitskollegen wählen'};
-function picker(k,txt){const sel=S.e[k],n=sel.length,mat=k==='material',pr=mat&&typeof Mat!=='undefined'&&S.e.projectId?Mat.rows(S.e.projectId):[],lab=v=>mat?v.name+(v.qty?' – '+v.qty+' '+(v.unit||''):''):v,cnt=mat?pr.length:n,show=S.show&&S.show[k],btn=mat?cnt+' Pos.'+(n?' (+'+n+')':''):n+' gewählt';
-const own=n?sel.map((v,i)=>`<div class="zrow" style="justify-content:space-between;padding:3px 0"><span>• ${esc(lab(v))}</span><button class="zb r" style="height:34px;min-width:38px" data-a="rm" data-k="${k}" data-i="${i}">✕</button></div>`).join(''):'';
-const proj=pr.length?`<div style="font-weight:700;margin-top:6px">Im Projekt gesamt</div>`+pr.map(r=>`<div style="padding:2px 0">• ${esc(r.n+(r.q?' – '+r.q+' '+(r.u||''):''))}</div>`).join(''):'';
-return`<div class="zrow"><button class="zb" style="flex:1" data-a="pick" data-k="${k}">${txt}</button><button class="zb ${cnt||n?'g':'l'}" style="min-width:96px" data-a="shw" data-k="${k}">${btn} ${show?'▴':'▾'}</button></div>`+(show&&(n||proj)?`<div class="zcard">${n&&mat?'<div style="font-weight:700">Dieser Eintrag</div>':''}${own}${proj}</div>`:'')}
+function picker(k,txt){const sel=S.e[k],mat=k==='material',pr=mat&&typeof Mat!=='undefined'&&S.e.projectId?Mat.rows(S.e.projectId):[],pend=mat?sel.map((v,i)=>({v,i})).filter(x=>!x.v.sync):[],cnt=mat?pr.length+pend.length:sel.length,show=S.show&&S.show[k],btn=mat?cnt+' Pos.':cnt+' gewählt';
+const row=(t,b)=>`<div class="zrow" style="justify-content:space-between;padding:3px 0"><span>• ${t}</span><span style="display:flex;gap:6px">${b}</span></div>`;
+const xb=(a,x)=>`<button class="zb r" style="height:34px;min-width:38px" data-a="${a}" ${x}>✕</button>`;
+const fm=r=>esc(r.n+(r.q?' – '+r.q+' '+(r.u||''):''))+(r.d?' <small>('+r.d.slice(8,10)+'.'+r.d.slice(5,7)+'.)</small>':'');
+let body='';
+if(mat){body=pr.map((r,i)=>row(fm(r),`<button class="zb" style="height:34px;min-width:38px" data-a="mr-edit" data-i="${i}">✎</button>`+xb('mr-del',`data-i="${i}"`))).join('')+(pend.length?`<div style="font-weight:700;margin-top:6px">Neu (wird beim Speichern übernommen)</div>`+pend.map(x=>row(esc(x.v.name+(x.v.qty?' – '+x.v.qty+' '+(x.v.unit||''):'')),xb('rm',`data-k="${k}" data-i="${x.i}"`))).join(''):'')}
+else body=sel.map((v,i)=>row(esc(v),xb('rm',`data-k="${k}" data-i="${i}"`))).join('');
+return`<div class="zrow"><button class="zb" style="flex:1" data-a="pick" data-k="${k}">${txt}</button><button class="zb ${cnt?'g':'l'}" style="min-width:96px" data-a="shw" data-k="${k}">${btn} ${show?'▴':'▾'}</button></div>`+(show&&body?`<div class="zcard">${body}</div>`:'')}
+function meModal(){const r=(typeof Mat!=='undefined'&&Mat.rows(S.e.projectId)[S.me.i])||{};return`<div class="mo"><div class="mb"><b>${esc(r.n||'')}</b><div class="zrow mqr"><input id="me-q" inputmode="decimal" placeholder="Menge" value="${esc(S.me.q)}"><select id="me-u">${D.units.map(u=>`<option ${u===S.me.u?'selected':''}>${esc(u)}</option>`).join('')}</select></div><div class="zrow"><button class="zb l" style="flex:1" data-a="mr-x">Abbrechen</button><button class="zb g" style="flex:1" data-a="mr-ok">Übernehmen</button></div></div></div>`}
 function matModal(){const sel=S.e.material,q=(S.pick.q||'').toLowerCase();
 return`<div class="mo"><div class="mb"><b>Material wählen</b><input id="pk-q" placeholder="🔍 Suchen" value="${esc(S.pick.q||'')}"><div class="ml">${D.materials.filter(v=>v.toLowerCase().includes(q)).map(v=>{const i=sel.findIndex(m=>m.name===v),on=i>=0;return`<button class="mr ${on?'on':''}" data-a="mtog" data-v="${esc(v)}">${on?'☑':'☐'} ${esc(v)}</button>`+(on?`<div class="zrow mqr"><input id="mq-${i}" inputmode="decimal" placeholder="Menge" value="${esc(sel[i].qty)}"><select id="mu-${i}">${D.units.map(u=>`<option ${u===sel[i].unit?'selected':''}>${esc(u)}</option>`).join('')}</select></div>`:'')}).join('')||'<div class="zcard">Noch keine Einträge – mit „+ neu“ anlegen.</div>'}</div><div class="zrow"><button class="zb" style="flex:1" data-a="addlist" data-k="materials">+ neu</button><button class="zb g" style="flex:2;height:48px" data-a="fin">Fertig (${sel.length})</button></div></div></div>`}
-function modal(){if(S.pick&&S.pick.k==='material'&&!S.pm)return matModal();if(S.pm)return'<div class="mo"><div class="mb">'+pform(S.p)+'</div></div>';if(!S.pick)return'';const k=S.pick.k,q=(S.pick.q||'').toLowerCase(),sel=S.e[k];
+function modal(){if(S.me)return meModal();if(S.pick&&S.pick.k==='material'&&!S.pm)return matModal();if(S.pm)return'<div class="mo"><div class="mb">'+pform(S.p)+'</div></div>';if(!S.pick)return'';const k=S.pick.k,q=(S.pick.q||'').toLowerCase(),sel=S.e[k];
 return`<div class="mo"><div class="mb"><b>${TIT[k]}</b><input id="pk-q" placeholder="🔍 Suchen" value="${esc(S.pick.q||'')}"><div class="ml">${D[k].filter(v=>v.toLowerCase().includes(q)).map(v=>`<button class="mr ${sel.includes(v)?'on':''}" data-a="tog" data-k="${k}" data-v="${esc(v)}">${sel.includes(v)?'☑':'☐'} ${esc(v)}</button>`).join('')||'<div class="zcard">Noch keine Einträge – mit „+ neu“ anlegen.</div>'}</div><div class="zrow"><button class="zb" style="flex:1" data-a="addlist" data-k="${k}">+ neu</button><button class="zb g" style="flex:2;height:48px" data-a="fin">Fertig (${sel.length})</button></div></div></div>`}
 function rMenu(){return`<div class="zmenu">
 <button class="zt" data-a="go" data-v="write"><span>⏱</span>Stunden schreiben</button>
@@ -192,7 +200,8 @@ ${k==='units'?'<small>Die oberste Einheit ist die Vorauswahl bei neuem Material.
 <small>Änderungen gelten für neue Einträge, bereits gespeicherte Stunden bleiben unverändert.</small></div>`}
 const T={week:'Wochenbericht',menu:'Zeiterfassung',write:'Stunden schreiben',over:'Übersicht',proj:'Projekte',plc:'Einstellungen'};
 function render(){titleEl.textContent=view==='plc'&&S.sv?SV[S.sv][0]:T[view];root.innerHTML={menu:rMenu,write:rWrite,over:rOver,proj:rProj,week:rWeek,plc:rPlc}[view]();window.scrollTo(0,0)}
-function go(v){view=v;if(v==='plc'){S.sv=null;S.lq='';S.ln=''}if(v==='week')S.wk=S.wk||monday(iso(new Date()));S.pick=null;S.pm=false;S.ret=null;S.prev=false;S.le=null;S.rc=null;if(v==='write'&&!S.e)S.e=newEntry();if(v==='over'){S.mode=S.mode||'month';S.sel=S.sel||iso(new Date());S.cur=S.sel}if(v==='proj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.q=''}render()}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&view==='write'&&S.e&&S.opened&&S.opened!==iso(new Date())){S.e=newEntry();S.opened=iso(new Date());render()}});
+function go(v){view=v;if(v==='plc'){S.sv=null;S.lq='';S.ln=''}if(v==='week')S.wk=S.wk||monday(iso(new Date()));S.pick=null;S.pm=false;S.ret=null;S.prev=false;S.le=null;S.rc=null;if(v==='write'&&!S.e)S.e=newEntry();if(v==='write'){S.opened=iso(new Date());migrateMat()}if(v==='over'){S.mode=S.mode||'month';S.sel=S.sel||iso(new Date());S.cur=S.sel}if(v==='proj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.q=''}render()}
 function adj(k,d){const e=S.e,s=D.step;if(k==='pause')e.pause=Math.max(0,+e.pause+d*s);else e[k]=ft(Math.min(1439,Math.max(0,tm(e[k])+d*s)))}
 function act(a,b,el){const e=S.e;
 if(a==='go')return go(b.v);
@@ -224,11 +233,15 @@ if(a==='rtog'){const m=mailList()[+b.i],k=S.rc.indexOf(m);k<0?S.rc.push(m):S.rc.
 if(a==='rsend'){const to=S.rc.slice();S.rc=null;return wpdf(true,to)}
 if(a==='up'||a==='dn'){adj(b.k,a==='up'?1:-1);return render()}
 if(a==='now'){const n=new Date(),m=Math.round((n.getHours()*60+n.getMinutes())/D.step)*D.step;e[b.k]=ft(Math.min(1439,m));return render()}
-if(a==='dprev'||a==='dnext'){e.date=addD(e.date,a==='dprev'?-1:1);reloadDay();return render()}
+if(a==='dprev'||a==='dnext'){e.date=addD(e.date,a==='dprev'?-1:1);reloadDay(true);return render()}
 if(a==='tog'){const l=e[b.k],i=l.indexOf(b.v);i<0?l.push(b.v):l.splice(i,1);if(S.pick&&el){const on=i<0;el.classList.toggle('on',on);el.textContent=(on?'☑ ':'☐ ')+b.v;document.querySelector('[data-a=fin]').textContent='Fertig ('+l.length+')';return}return render()}
 if(a==='mtog'){const l=e.material,i=l.findIndex(m=>m.name===b.v),st=(document.querySelector('.ml')||{}).scrollTop||0;if(i<0)l.push({name:b.v,qty:'',unit:D.mu[b.v]||D.units[0]});else l.splice(i,1);render();const m2=document.querySelector('.ml');if(m2)m2.scrollTop=st;if(i<0){const q=document.getElementById('mq-'+(l.length-1));if(q)q.focus()}return}
 if(a==='pick'){S.pick={k:b.k,q:''};return render()}
-if(a==='fin'){S.pick=null;return render()}
+if(a==='mr-edit'){const r=Mat.rows(e.projectId)[+b.i];if(!r)return;S.me={i:+b.i,q:String(r.q||''),u:r.u||''};return render()}
+if(a==='mr-x'){S.me=null;return render()}
+if(a==='mr-ok'){const q=((document.getElementById('me-q')||{}).value||'').trim(),u=(document.getElementById('me-u')||{}).value||'';Mat.set(e.projectId,S.me.i,{q,u});S.me=null;return render()}
+if(a==='mr-del'){if(!confirm('Diese Materialposition löschen?'))return;Mat.del(e.projectId,+b.i);return render()}
+if(a==='fin'){if(S.pick&&S.pick.k==='material')flushMat();S.pick=null;return render()}
 if(a==='shw'){S.show=S.show||{};S.show[b.k]=!S.show[b.k];return render()}
 if(a==='rm'){e[b.k].splice(+b.i,1);return render()}
 if(a==='addlist'){const t={tasks:'Neue Tätigkeit:',colleagues:'Name des Arbeitskollegen:',materials:'Neues Material:'}[b.k],v=(prompt(t)||'').trim();if(!v)return;if(!D[b.k].includes(v))D[b.k].push(v);if(b.k!=='materials')e[b.k].push(v);else if(!e.material.some(m=>m.name===v))e.material.push({name:v,qty:'',unit:D.mu[v]||D.units[0]});save();return render()}
@@ -237,7 +250,7 @@ if(a==='mdel'){e.material.splice(+b.i,1);return render()}
 if(a==='newproj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.pm=true;return render()}
 if(a==='newcar'){const v=(prompt('Kennzeichen (z. B. VL 123 AB):')||'').trim().toUpperCase();if(!v)return;if(!D.cars.includes(v))D.cars.push(v);e.auto=v;save();return render()}
 if(a==='std'){Object.assign(e,stdFor(e.date));return render()}
-if(a==='save'){if(D.set.hasCar&&D.set.car&&!e.auto)e.auto=D.set.car;D.lastCar=e.auto||D.lastCar;if(!e.tasks.length&&!isAbs(e.projectId))return alert('Bitte mindestens eine Tätigkeit wählen (nur bei Urlaub und Krankenstand nicht nötig).');if(tm(e.end)<=tm(e.start))return alert('„Bis“ muss nach „Von“ liegen.');if(!e.id){e.id=Date.now();D.entries.push(e)}else D.entries=D.entries.map(x=>x.id===e.id?e:x);save();S.sel=e.date;S.e=null;go('over');return}
+if(a==='save'){if(D.set.hasCar&&D.set.car&&!e.auto)e.auto=D.set.car;D.lastCar=e.auto||D.lastCar;if(!e.tasks.length&&!isAbs(e.projectId))return alert('Bitte mindestens eine Tätigkeit wählen (nur bei Urlaub und Krankenstand nicht nötig).');if(tm(e.end)<=tm(e.start))return alert('„Bis“ muss nach „Von“ liegen.');flushMat();if(!e.id){e.id=Date.now();D.entries.push(e)}else D.entries=D.entries.map(x=>x.id===e.id?e:x);save();S.sel=e.date;S.e=null;go('over');return}
 if(a==='edit'){S.e=JSON.parse(JSON.stringify(D.entries.find(x=>x.id==b.i)));return go('write')}
 if(a==='del'){if(!confirm('Eintrag wirklich löschen?'))return;D.entries=D.entries.filter(x=>x.id!=b.i);save();S.e=null;return go('over')}
 if(a==='newfor'){S.e=newEntry(S.sel);return go('write')}
@@ -256,7 +269,7 @@ if(a==='rcancel'){S.ret=null;return render()}
 if(a==='rsave'){const p=D.projects.find(x=>x.id===S.ret.id);p.returns=S.ret.rows.filter(x=>(x.qty||'').trim()).map(x=>({name:x.name,qty:x.qty.trim(),unit:x.unit}));p.done=true;S.ret=null;save();return render()}
 if(a==='pall'){S.all=!S.all;return render()}}
 function onIn(ev){const i=ev.target.id,v=ev.target.value;
-if(i==='f-date'&&v){S.e.date=v;reloadDay();render()}else if(i==='f-proj'){S.e.projectId=v?+v:'';reloadDay();render()}else if(i==='f-note')S.e.note=v;else if(i==='f-car')S.e.auto=v;else if(i==='w-name'){D.set.name=v;save()}else if(i==='w-mail'){D.set.mail=v;save()}else if(i==='m-qty')S.mq=v;else if(i==='m-sel')S.ms=v;
+if(i==='f-date'&&v){S.e.date=v;reloadDay(true);render()}else if(i==='f-proj'){S.e.projectId=v?+v:'';reloadDay();render()}else if(i==='f-note')S.e.note=v;else if(i==='f-car')S.e.auto=v;else if(i==='w-name'){D.set.name=v;save()}else if(i==='w-mail'){D.set.mail=v;save()}else if(i==='m-qty')S.mq=v;else if(i==='m-sel')S.ms=v;
 else if(i==='p-name')S.p.name=v;else if(i==='p-nr'){S.p.nr=v.replace(/\D/g,'').slice(0,6);ev.target.value=S.p.nr}else if(i==='p-ad')S.p.addr=v;else if(i==='p-tel')S.p.tel=v;else if(i==='m-unit')S.mu=v;else if(i.startsWith('mq-'))S.e.material[+i.slice(3)].qty=v;else if(i.startsWith('mu-')){const m=S.e.material[+i.slice(3)];m.unit=v;D.mu[m.name]=v;save()}else if(i==='rt-sel')S.ret.ms=v;else if(i==='rt-unit')S.ret.mu=v;else if(i==='rt-qty')S.ret.mq=v;else if(i.startsWith('rq-'))S.ret.rows[+i.slice(3)].qty=v;else if(i==='p-cl')S.p.client=v;
 else if(i==='s-hascar'){if(ev.type!=='change')return;D.set.hasCar=ev.target.checked;save();render()}
 else if(i==='s-car'){if(ev.type!=='change')return;D.set.car=v.trim().toUpperCase();ev.target.value=D.set.car;save()}
