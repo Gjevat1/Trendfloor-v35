@@ -25,12 +25,14 @@ function reloadDay(){const e=S.e;if(!e)return false;let ch=false;
 if(isAbs(e.projectId)){const s=stdFor(e.date);Object.assign(e,{start:s.start,end:s.end,pause:s.pause,tasks:[],colleagues:[],material:[]});ch=true}
 const x=e.projectId?D.entries.find(q=>q.date===e.date&&q.projectId===e.projectId&&q.id!==e.id):null;
 if(x){S.e=JSON.parse(JSON.stringify(x));return true}
-if(!e.id&&e.tasks.length){e.tasks=[];ch=true}
+if(!e.id&&(e.tasks.length||e.colleagues.length)){e.tasks=[];e.colleagues=[];ch=true}
 return ch}
+const fdl=s=>{const q=dt(s);return TAGE[q.getDay()]+'., '+p2(q.getDate())+'.'+p2(q.getMonth()+1)+'.'+q.getFullYear()};
 function newEntry(date){date=date||iso(new Date());return Object.assign({id:0,date,projectId:'',auto:(D.set.hasCar?D.set.car:D.lastCar)||'',tasks:[],colleagues:[],material:[],note:''},stdFor(date))}
 const css=document.createElement('style');css.textContent=`
 .zc{display:flex;flex-direction:column;gap:10px;padding-top:12px}
 .zc label{font-weight:700;font-size:.9rem;color:#0659AA;margin-top:6px}
+.dtbox{position:relative;flex:1;display:flex;align-items:center;padding:10px;border:1px solid #b9c4d2;border-radius:10px;background:#fff;font:inherit;min-height:44px}.dtbox span{pointer-events:none}.zc .dtbox input{position:absolute;inset:0;width:100%;height:100%;opacity:0;padding:0;border:0}
 .zc input,.zc select,.zc textarea{font:inherit;padding:10px;border:1px solid #b9c4d2;border-radius:10px;background:#fff;min-width:0;width:100%}
 .zrow{display:flex;gap:8px;align-items:center}
 .zb{border:0;background:#0659AA;color:#fff;border-radius:10px;min-width:44px;height:44px;font-size:1.1rem;font-weight:700;padding:0 12px}
@@ -79,7 +81,7 @@ function rMenu(){return`<div class="zmenu">
 <button class="zt w" data-a="go" data-v="plc"><span>⚙</span>Einstellungen</button></div>`}
 function rWrite(){const e=S.e,ps=D.projects.filter(p=>!p.done||p.id===e.projectId);
 return`<div class="zc">
-<div class="zrow"><button class="zb" data-a="dprev">◀</button><input type="date" id="f-date" value="${e.date}"><button class="zb" data-a="dnext">▶</button></div>
+<div class="zrow"><button class="zb" data-a="dprev">◀</button><div class="dtbox"><span>${fdl(e.date)}</span><input type="date" id="f-date" value="${e.date}"></div><button class="zb" data-a="dnext">▶</button></div>
 <label>Projekt</label><div class="zrow"><select id="f-proj"><option value="">– kein Projekt –</option>${ps.map(p=>`<option value="${p.id}" ${p.id===e.projectId?'selected':''}>${esc(pname(p.id))}</option>`).join('')}</select><button class="zb" data-a="newproj">+</button></div>
 ${isAbs(e.projectId)?`<div class="zsum">${esc(pname(e.projectId))}: ${fh(hrs(e))} (Sollstunden, automatisch)</div>`:`${D.set.hasCar?'':`<label>Auto (Kennzeichen)</label><div class="zrow"><select id="f-car"><option value="">– kein Auto –</option>${(D.cars.includes(e.auto)||!e.auto?D.cars:D.cars.concat(e.auto)).map(c=>`<option ${c===e.auto?'selected':''}>${esc(c)}</option>`).join('')}</select><button class="zb" data-a="newcar">+</button></div>`}
 <div class="zrow"><label style="flex:1">Zeit</label><button class="zb g" data-a="std">Standard</button></div><div class="ztime">${stepper('start','Von')}${stepper('end','Bis')}${stepper('pause','Pause')}</div>
@@ -254,7 +256,7 @@ if(a==='rcancel'){S.ret=null;return render()}
 if(a==='rsave'){const p=D.projects.find(x=>x.id===S.ret.id);p.returns=S.ret.rows.filter(x=>(x.qty||'').trim()).map(x=>({name:x.name,qty:x.qty.trim(),unit:x.unit}));p.done=true;S.ret=null;save();return render()}
 if(a==='pall'){S.all=!S.all;return render()}}
 function onIn(ev){const i=ev.target.id,v=ev.target.value;
-if(i==='f-date'&&v){S.e.date=v;if(reloadDay())render()}else if(i==='f-proj'){S.e.projectId=v?+v:'';reloadDay();render()}else if(i==='f-note')S.e.note=v;else if(i==='f-car')S.e.auto=v;else if(i==='w-name'){D.set.name=v;save()}else if(i==='w-mail'){D.set.mail=v;save()}else if(i==='m-qty')S.mq=v;else if(i==='m-sel')S.ms=v;
+if(i==='f-date'&&v){S.e.date=v;reloadDay();render()}else if(i==='f-proj'){S.e.projectId=v?+v:'';reloadDay();render()}else if(i==='f-note')S.e.note=v;else if(i==='f-car')S.e.auto=v;else if(i==='w-name'){D.set.name=v;save()}else if(i==='w-mail'){D.set.mail=v;save()}else if(i==='m-qty')S.mq=v;else if(i==='m-sel')S.ms=v;
 else if(i==='p-name')S.p.name=v;else if(i==='p-nr'){S.p.nr=v.replace(/\D/g,'').slice(0,6);ev.target.value=S.p.nr}else if(i==='p-ad')S.p.addr=v;else if(i==='p-tel')S.p.tel=v;else if(i==='m-unit')S.mu=v;else if(i.startsWith('mq-'))S.e.material[+i.slice(3)].qty=v;else if(i.startsWith('mu-')){const m=S.e.material[+i.slice(3)];m.unit=v;D.mu[m.name]=v;save()}else if(i==='rt-sel')S.ret.ms=v;else if(i==='rt-unit')S.ret.mu=v;else if(i==='rt-qty')S.ret.mq=v;else if(i.startsWith('rq-'))S.ret.rows[+i.slice(3)].qty=v;else if(i==='p-cl')S.p.client=v;
 else if(i==='s-hascar'){if(ev.type!=='change')return;D.set.hasCar=ev.target.checked;save();render()}
 else if(i==='s-car'){if(ev.type!=='change')return;D.set.car=v.trim().toUpperCase();ev.target.value=D.set.car;save()}
