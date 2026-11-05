@@ -32,7 +32,8 @@ const mrow=(e,m)=>({d:e.date,n:m.name,q:String(m.qty||''),u:m.unit||'',r:'',w:[D
 function flushMat(){const e=S.e;if(!e||!e.projectId||typeof Mat==='undefined')return;(e.material||[]).forEach(m=>{if(!m.sync){Mat.add(e.projectId,mrow(e,m));m.sync=1}})}
 function migrateMat(){if(D.migMat||typeof Mat==='undefined')return;D.entries.forEach(x=>{if(!x.projectId||!x.material)return;x.material.forEach(m=>{if(m.sync)return;const l=Mat.rows(x.projectId);if(!l.some(r=>r.d===x.date&&r.n===m.name&&String(r.q||'')===String(m.qty||'')&&(r.u||'')===(m.unit||'')))Mat.add(x.projectId,mrow(x,m));m.sync=1})});D.migMat=1;save()}
 const fdl=s=>{const q=dt(s);return TAGE[q.getDay()]+'., '+p2(q.getDate())+'.'+p2(q.getMonth()+1)+'.'+q.getFullYear()};
-function newEntry(date){date=date||iso(new Date());return Object.assign({id:0,date,projectId:'',auto:(D.set.hasCar?D.set.car:D.lastCar)||'',tasks:[],colleagues:[],material:[],note:''},stdFor(date))}
+function wbQuota(e){const ne=1+D.entries.filter(x=>x.date===e.date&&x.id!==e.id).length,g=dt(e.date).getDay(),base=(g===0||g===6)?2:4,n=Math.max(ne,base);return Math.max(1,Math.floor(n/ne))}
+function newEntry(date){date=date||iso(new Date());return Object.assign({id:0,date,projectId:(D.lastProj&&D.projects.some(p=>p.id===D.lastProj&&!p.done&&!p.kind))?D.lastProj:'',wbt:[],auto:(D.set.hasCar?D.set.car:D.lastCar)||'',tasks:[],colleagues:[],material:[],note:''},stdFor(date))}
 const css=document.createElement('style');css.textContent=`
 .zc{display:flex;flex-direction:column;gap:10px;padding-top:12px}
 .zc label{font-weight:700;font-size:.9rem;color:#0659AA;margin-top:6px}
@@ -75,6 +76,7 @@ const xb=(a,x)=>`<button class="zb r" style="height:34px;min-width:38px" data-a=
 const fm=r=>esc(r.n+(r.q?' – '+r.q+' '+(r.u||''):''))+(r.d?' <small>('+r.d.slice(8,10)+'.'+r.d.slice(5,7)+'.)</small>':'');
 let body='';
 if(mat){body=pr.map((r,i)=>row(fm(r),`<button class="zb" style="height:34px;min-width:38px" data-a="mr-edit" data-i="${i}">✎</button>`+xb('mr-del',`data-i="${i}"`))).join('')+(pend.length?`<div style="font-weight:700;margin-top:6px">Neu (wird beim Speichern übernommen)</div>`+pend.map(x=>row(esc(x.v.name+(x.v.qty?' – '+x.v.qty+' '+(x.v.unit||''):'')),xb('rm',`data-k="${k}" data-i="${x.i}"`))).join(''):'')}
+else if(k==='tasks'){const q=wbQuota(S.e),wb=S.e.wbt||[],cn=sel.filter(x=>wb.includes(x)).length;body=`<div style="font-weight:700;margin-bottom:4px;${cn>q?'color:#c0392b':''}">Im Wochenbericht: ${cn} von ${q} Zeilen</div><small>Kästchen antippen = Tätigkeit kommt in den Wochenbericht.</small>`+sel.map((v,i)=>row(esc(v),`<button class="zb ${wb.includes(v)?'g':'l'}" style="height:34px;min-width:38px" data-a="wbt" data-i="${i}">${wb.includes(v)?'☑':'☐'}</button>`+xb('rm',`data-k="${k}" data-i="${i}"`))).join('')}
 else body=sel.map((v,i)=>row(esc(v),xb('rm',`data-k="${k}" data-i="${i}"`))).join('');
 return`<div class="zrow"><button class="zb" style="flex:1" data-a="pick" data-k="${k}">${txt}</button><button class="zb ${cnt?'g':'l'}" style="min-width:96px" data-a="shw" data-k="${k}">${btn} ${show?'▴':'▾'}</button></div>`+(show&&body?`<div class="zcard">${body}</div>`:'')}
 function meModal(){const r=(typeof Mat!=='undefined'&&Mat.rows(S.e.projectId)[S.me.i])||{};return`<div class="mo"><div class="mb"><b>${esc(r.n||'')}</b><div class="zrow mqr"><input id="me-q" inputmode="decimal" placeholder="Menge" value="${esc(S.me.q)}"><select id="me-u">${D.units.map(u=>`<option ${u===S.me.u?'selected':''}>${esc(u)}</option>`).join('')}</select></div><div class="zrow"><button class="zb l" style="flex:1" data-a="mr-x">Abbrechen</button><button class="zb g" style="flex:1" data-a="mr-ok">Übernehmen</button></div></div></div>`}
@@ -148,7 +150,7 @@ const au=x=>x.auto||(D.set.hasCar?D.set.car||'':'');
 for(let r=0;r<N;r++){const ei=es.length?Math.floor(r/k):-1,e=ei>=0&&ei<es.length?es[ei]:null,j=e?r-ei*k:0,t=['',TAGE[q.getDay()],'','','','','','',''];if(r===0)t[0]=p2(q.getDate());
 if(e){const p=D.projects.find(x=>x.id===e.projectId);
 if(j===0){t[2]=p?wbText(p):'';t[3]=p?p.nr:'';t[4]=ft(Math.round(hrs(e)*60));t[5]=e.start+'  -  '+e.end;t[6]=wpr(e);if(ei===0||au(e)!==au(es[ei-1]))t[8]=au(e)}
-const L=wrapT([e.tasks.join(', '),e.note].filter(Boolean).join(' - '));t[7]=j<k-1?(L[j]||''):L.slice(k-1).join(' ')}
+const sel=(e.wbt||[]).filter(x=>e.tasks.includes(x)),TL=sel.length?sel:e.tasks.slice(0,k),L=TL.slice();if(e.note){if(L.length)L[L.length-1]+=' - '+e.note;else L.push(e.note)}t[7]=j<k-1?(L[j]||''):L.slice(k-1).join(', ')}
 rows.push(t)}return rows})}
 function buildPdf(mo){const{jsPDF}=window.jspdf,d=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'}),th=dt(addD(mo,3)),C=WC,cen=WCEN,W=277,x0=10;let y=0;
 const hdr=()=>{let x=x0;d.setFont('helvetica','bold');d.setFontSize(8.5);d.setLineWidth(.6);C.forEach(c=>{d.rect(x,y,c[1],7,'S');d.text(c[0],x+c[1]/2,y+4.8,{align:'center'});x+=c[1]});y+=7;d.setFont('helvetica','normal')};
@@ -201,8 +203,8 @@ ${k==='units'?'<small>Die oberste Einheit ist die Vorauswahl bei neuem Material.
 <small>Änderungen gelten für neue Einträge, bereits gespeicherte Stunden bleiben unverändert.</small></div>`}
 const T={week:'Wochenbericht',menu:'Zeiterfassung',write:'Stunden schreiben',over:'Übersicht',proj:'Projekte',plc:'Einstellungen'};
 function render(){titleEl.textContent=view==='plc'&&S.sv?SV[S.sv][0]:T[view];root.innerHTML={menu:rMenu,write:rWrite,over:rOver,proj:rProj,week:rWeek,plc:rPlc}[view]();window.scrollTo(0,0)}
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&view==='write'&&S.e&&S.opened&&S.opened!==iso(new Date())){S.e=newEntry();S.opened=iso(new Date());render()}});
-function go(v){view=v;if(v==='plc'){S.sv=null;S.lq='';S.ln=''}if(v==='week')S.wk=S.wk||monday(iso(new Date()));S.pick=null;S.pm=false;S.ret=null;S.prev=false;S.le=null;S.rc=null;if(v==='write'&&!S.e)S.e=newEntry();if(v==='write'){S.opened=iso(new Date());migrateMat()}if(v==='over'){S.mode=S.mode||'month';S.sel=S.sel||iso(new Date());S.cur=S.sel}if(v==='proj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.q=''}render()}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&view==='write'&&S.e&&S.opened&&S.opened!==iso(new Date())){S.e=newEntry();reloadDay();S.opened=iso(new Date());render()}});
+function go(v){view=v;if(v==='plc'){S.sv=null;S.lq='';S.ln=''}if(v==='week')S.wk=S.wk||monday(iso(new Date()));S.pick=null;S.pm=false;S.ret=null;S.prev=false;S.le=null;S.rc=null;if(v==='write'&&!S.e){S.e=newEntry();reloadDay()}if(v==='write'){S.opened=iso(new Date());migrateMat()}if(v==='over'){S.mode=S.mode||'month';S.sel=S.sel||iso(new Date());S.cur=S.sel}if(v==='proj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.q=''}render()}
 function adj(k,d){const e=S.e,s=D.step;if(k==='pause')e.pause=Math.max(0,+e.pause+d*s);else e[k]=ft(Math.min(1439,Math.max(0,tm(e[k])+d*s)))}
 function act(a,b,el){const e=S.e;
 if(a==='go')return go(b.v);
@@ -238,6 +240,7 @@ if(a==='dprev'||a==='dnext'){e.date=addD(e.date,a==='dprev'?-1:1);reloadDay(true
 if(a==='tog'){const l=e[b.k],i=l.indexOf(b.v);i<0?l.push(b.v):l.splice(i,1);if(S.pick&&el){const on=i<0;el.classList.toggle('on',on);el.textContent=(on?'☑ ':'☐ ')+b.v;document.querySelector('[data-a=fin]').textContent='Fertig ('+l.length+')';return}return render()}
 if(a==='mtog'){const l=e.material,i=l.findIndex(m=>m.name===b.v),st=(document.querySelector('.ml')||{}).scrollTop||0;if(i<0)l.push({name:b.v,qty:'',unit:D.mu[b.v]||D.units[0]});else l.splice(i,1);render();const m2=document.querySelector('.ml');if(m2)m2.scrollTop=st;if(i<0){const q=document.getElementById('mq-'+(l.length-1));if(q)q.focus()}return}
 if(a==='pick'){S.pick={k:b.k,q:''};return render()}
+if(a==='wbt'){const t=e.tasks[+b.i];e.wbt=e.wbt||[];const j=e.wbt.indexOf(t);if(j>=0)e.wbt.splice(j,1);else e.wbt.push(t);return render()}
 if(a==='mr-edit'){const r=Mat.rows(e.projectId)[+b.i];if(!r)return;S.me={i:+b.i,q:String(r.q||''),u:r.u||''};return render()}
 if(a==='mr-x'){S.me=null;return render()}
 if(a==='mr-ok'){const q=((document.getElementById('me-q')||{}).value||'').trim(),u=(document.getElementById('me-u')||{}).value||'';Mat.set(e.projectId,S.me.i,{q,u});S.me=null;return render()}
@@ -251,7 +254,7 @@ if(a==='mdel'){e.material.splice(+b.i,1);return render()}
 if(a==='newproj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.pm=true;return render()}
 if(a==='newcar'){const v=(prompt('Kennzeichen (z. B. VL 123 AB):')||'').trim().toUpperCase();if(!v)return;if(!D.cars.includes(v))D.cars.push(v);e.auto=v;save();return render()}
 if(a==='std'){Object.assign(e,stdFor(e.date));return render()}
-if(a==='save'){if(D.set.hasCar&&D.set.car&&!e.auto)e.auto=D.set.car;D.lastCar=e.auto||D.lastCar;if(!e.tasks.length&&!isAbs(e.projectId))return alert('Bitte mindestens eine Tätigkeit wählen (nur bei Urlaub und Krankenstand nicht nötig).');if(tm(e.end)<=tm(e.start))return alert('„Bis“ muss nach „Von“ liegen.');flushMat();if(!e.id){e.id=Date.now();D.entries.push(e)}else D.entries=D.entries.map(x=>x.id===e.id?e:x);save();S.sel=e.date;S.e=null;go('over');return}
+if(a==='save'){if(D.set.hasCar&&D.set.car&&!e.auto)e.auto=D.set.car;D.lastCar=e.auto||D.lastCar;if(!e.tasks.length&&!isAbs(e.projectId))return alert('Bitte mindestens eine Tätigkeit wählen (nur bei Urlaub und Krankenstand nicht nötig).');if(tm(e.end)<=tm(e.start))return alert('„Bis“ muss nach „Von“ liegen.');flushMat();if(!isAbs(e.projectId))D.lastProj=e.projectId;if(!e.id){e.id=Date.now();D.entries.push(e)}else D.entries=D.entries.map(x=>x.id===e.id?e:x);save();S.sel=e.date;S.e=null;go('over');return}
 if(a==='edit'){S.e=JSON.parse(JSON.stringify(D.entries.find(x=>x.id==b.i)));return go('write')}
 if(a==='del'){if(!confirm('Eintrag wirklich löschen?'))return;D.entries=D.entries.filter(x=>x.id!=b.i);save();S.e=null;return go('over')}
 if(a==='newfor'){S.e=newEntry(S.sel);return go('write')}
