@@ -44,7 +44,7 @@ header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
   <div class="bar" id="modbar"><button id="back" aria-label="Zurück"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12H5M11.5 5.5L5 12l6.5 6.5"/></svg></button><span id="modtitle"></span></div>
   <div class="card" id="modbody"></div>
  </div>
- <div class="status"><span class="dot" id="dot"></span><span id="st"></span> · Version 047</div>
+ <div class="status"><span class="dot" id="dot"></span><span id="st"></span> · Version 048</div>
 </div>
 <script src="jspdf.min.js"></script>
 <script src="zeit.js"></script>
@@ -74,7 +74,7 @@ const keys=()=>Object.keys(localStorage).filter(k=>k.startsWith('tf_')&&k!==LAST
 const stamp=()=>{const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'_'+p2(d.getHours())+p2(d.getMinutes())};
 const dmy=t=>{const d=new Date(t);return isNaN(d)?'':p2(d.getDate())+'.'+p2(d.getMonth()+1)+'.'+d.getFullYear()+' '+p2(d.getHours())+':'+p2(d.getMinutes())};
 function make(){const data={};keys().forEach(k=>data[k]=localStorage.getItem(k));const created=new Date().toISOString();
-const nm='Trendfloor-Sicherung_'+stamp()+'.json';return{nm,n:Object.keys(data).length,file:new Blob([JSON.stringify({app:'Trendfloor',version:47,created,data})],{type:'application/json'}),created}}
+const nm='Trendfloor-Sicherung_'+stamp()+'.json';return{nm,n:Object.keys(data).length,file:new Blob([JSON.stringify({app:'Trendfloor',version:48,created,data})],{type:'application/json'}),created}}
 function mark(c){try{localStorage.setItem(LAST,c)}catch(e){}}
 let root,note='';
 function view(){const l=localStorage.getItem(LAST);

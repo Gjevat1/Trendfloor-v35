@@ -33,6 +33,44 @@ function flushMat(){const e=S.e;if(!e||!e.projectId||typeof Mat==='undefined')re
 function migrateMat(){if(D.migMat||typeof Mat==='undefined')return;D.entries.forEach(x=>{if(!x.projectId||!x.material)return;x.material.forEach(m=>{if(m.sync)return;const l=Mat.rows(x.projectId);if(!l.some(r=>r.d===x.date&&r.n===m.name&&String(r.q||'')===String(m.qty||'')&&(r.u||'')===(m.unit||'')))Mat.add(x.projectId,mrow(x,m));m.sync=1})});D.migMat=1;save()}
 const fdl=s=>{const q=dt(s);return TAGE[q.getDay()]+'., '+p2(q.getDate())+'.'+p2(q.getMonth()+1)+'.'+q.getFullYear()};
 function wbQuota(e){const ne=1+D.entries.filter(x=>x.date===e.date&&x.id!==e.id).length,g=dt(e.date).getDay(),base=(g===0||g===6)?2:4,n=Math.max(ne,base);return Math.max(1,Math.floor(n/ne))}
+const SOLL=[0,8,8,8,8,7,0],URLAUBSTAGE=24;
+const absKind=e=>{const p=D.projects.find(x=>x.id===e.projectId);return p&&p.kind?p.kind:'arbeit'};
+function statDef(){return{y:String(new Date().getFullYear()),m:'',w:'',p:'',a:'me',d:''}}
+function statCalc(f){const me=D.set.name||'Ich',today=iso(new Date());
+const inP=e=>{if(f.d)return e.date===f.d;if(f.y&&e.date.slice(0,4)!==f.y)return false;if(f.m&&+e.date.slice(5,7)!==+f.m)return false;if(f.w&&kw(e.date)!==+f.w)return false;return true};
+const sel=D.entries.filter(e=>inP(e)&&(!f.p||String(e.projectId)===String(f.p))&&(f.a==='me'||f.a==='all'||(e.colleagues||[]).includes(f.a)));
+const wt=e=>f.a==='all'?1+(e.colleagues||[]).length:1;
+const cat={arbeit:{h:0,d:new Set()},urlaub:{h:0,d:new Set()},krank:{h:0,d:new Set()},feiertag:{h:0,d:new Set()}},byP={},byW={};
+sel.forEach(e=>{const h=hrs(e),k=absKind(e);cat[k].h+=h*wt(e);cat[k].d.add(e.date);byP[e.projectId]=(byP[e.projectId]||0)+h*wt(e);byW[me]=(byW[me]||0)+h;(e.colleagues||[]).forEach(c=>{byW[c]=(byW[c]||0)+h})});
+const total=cat.arbeit.h+cat.urlaub.h+cat.krank.h+cat.feiertag.h;
+let soll=null;if(f.a==='me'&&!f.p&&(f.d||f.y)){soll=0;const add=s=>{if(s<=today)soll+=SOLL[dt(s).getDay()]};if(f.d)add(f.d);else{for(let d=dt(f.y+'-01-01');d.getFullYear()===+f.y;d.setDate(d.getDate()+1)){const s=iso(d);if(f.m&&+s.slice(5,7)!==+f.m)continue;if(f.w&&kw(s)!==+f.w)continue;add(s)}}}
+let yr=null;if(f.y){const ys=D.entries.filter(e=>e.date.slice(0,4)===f.y),pick=k=>{const l=ys.filter(e=>absKind(e)===k);return{d:new Set(l.map(e=>e.date)).size,h:l.reduce((s,e)=>s+hrs(e),0)}};yr={urlaub:pick('urlaub'),krank:pick('krank'),feiertag:pick('feiertag')}}
+return{me,sel,cat,byP,byW,total,soll,yr}}
+function rStat(){const f=S.f||(S.f=statDef()),r=statCalc(f),days=c=>c.d.size;
+const yrs=[...new Set(D.entries.map(e=>e.date.slice(0,4)).concat([String(new Date().getFullYear())]))].sort().reverse();
+const names=[...new Set(D.entries.flatMap(e=>e.colleagues||[]))].sort();
+const o=(v,t,c)=>`<option value="${esc(v)}" ${String(c)===String(v)?'selected':''}>${esc(t)}</option>`;
+const sc=(id,lab,opts)=>`<label>${lab}</label><select id="st-${id}">${opts}</select>`;
+const kws=Array.from({length:53},(_,i)=>o(i+1,'KW '+(i+1),f.w)).join('');
+const row=(a,b)=>`<div class="zrow" style="justify-content:space-between;padding:3px 0"><span>${a}</span><b>${b}</b></div>`;
+const L={arbeit:'Arbeit',urlaub:'Urlaub',krank:'Krankenstand',feiertag:'Feiertag'};
+const catRows=Object.keys(L).filter(k=>r.cat[k].h>0).map(k=>row(L[k]+' ('+days(r.cat[k])+(days(r.cat[k])===1?' Tag':' Tage')+')',fh(r.cat[k].h))).join('');
+const diff=r.soll===null?'':r.total-r.soll,sollRow=r.soll===null?'':row('Soll'+(f.d?'':' bis heute'),fh(r.soll))+row(diff>=0?'Überstunden':'Minusstunden',(diff>0?'+':'')+fh(diff));
+const pl=Object.keys(r.byP).sort((a,b)=>r.byP[b]-r.byP[a]).map(id=>row(esc(pname(+id)||'—'),fh(r.byP[id]))).join('');
+const wl=Object.keys(r.byW).sort((a,b)=>r.byW[b]-r.byW[a]).map(n=>row(esc(n),fh(r.byW[n]))).join('');
+const y=r.yr,yrCard=y?`<div class="zcard"><b>Jahr ${esc(f.y)}</b>`+row('Urlaub genommen',y.urlaub.d+' von '+URLAUBSTAGE+' Tagen ('+fh(y.urlaub.h)+')')+row('Urlaub übrig',Math.max(0,URLAUBSTAGE-y.urlaub.d)+' Tage')+row('Krankenstand',y.krank.d+(y.krank.d===1?' Tag':' Tage')+' ('+fh(y.krank.h)+')')+row('Feiertage',y.feiertag.d+(y.feiertag.d===1?' Tag':' Tage')+' ('+fh(y.feiertag.h)+')')+'</div>':'';
+const list=r.sel.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,80).map(e=>`<div class="zcard"><b>${fdl(e.date)}</b> · ${esc(pname(e.projectId)||'—')} · ${fh(hrs(e))}${(e.tasks||[]).length?'<br><small>'+esc(e.tasks.join(', '))+'</small>':''}</div>`).join('');
+return`<div class="zc"><div class="zcard">
+${sc('y','Jahr',o('','Alle Jahre',f.y)+yrs.map(v=>o(v,v,f.y)).join(''))}
+${sc('m','Monat',o('','Alle Monate',f.m)+MON.map((n,i)=>o(i+1,n,f.m)).join(''))}
+${sc('w','Kalenderwoche',o('','Alle KW',f.w)+kws)}
+${sc('p','Baustelle',o('','Alle Baustellen',f.p)+D.projects.map(p=>o(p.id,pname(p.id)||p.name,f.p)).join(''))}
+${sc('a','Arbeiter',o('me',r.me+' (ich)',f.a)+o('all','Alle Arbeiter zusammen',f.a)+names.map(n=>o(n,n,f.a)).join(''))}
+<label>Tag</label><input type="date" id="st-d" value="${esc(f.d)}">
+<button class="zb l" style="margin-top:8px;width:100%" data-a="st-reset">Filter zurücksetzen</button></div>
+<div class="zcard"><div style="font-size:1.3rem;font-weight:700">Gesamt: ${fh(r.total)}</div>${f.a==='all'?'<small>alle Arbeiter zusammengerechnet</small>':''}${catRows}${sollRow}</div>
+${yrCard}${pl?'<div class="zcard"><b>Nach Baustelle</b>'+pl+'</div>':''}${wl&&Object.keys(r.byW).length>1?'<div class="zcard"><b>Nach Arbeiter</b>'+wl+'</div>':''}
+${list?'<b>Einträge</b>'+list:'<div class="zcard">Keine Einträge für diese Auswahl.</div>'}</div>`}
 function newEntry(date){date=date||iso(new Date());return Object.assign({id:0,date,projectId:(D.lastProj&&D.projects.some(p=>p.id===D.lastProj&&!p.done&&!p.kind))?D.lastProj:'',wbt:[],auto:(D.set.hasCar?D.set.car:D.lastCar)||'',tasks:[],colleagues:[],material:[],note:''},stdFor(date))}
 const css=document.createElement('style');css.textContent=`
 .zc{display:flex;flex-direction:column;gap:10px;padding-top:12px}
@@ -89,6 +127,7 @@ function rMenu(){return`<div class="zmenu">
 <button class="zt" data-a="go" data-v="over"><span>📅</span>Übersicht</button>
 <button class="zt" data-a="go" data-v="proj"><span>📁</span>Projekte</button>
 <button class="zt" data-a="go" data-v="week"><span>📄</span>Wochenbericht</button>
+<button class="zt" data-a="go" data-v="stat"><span>📊</span>Auswertung</button>
 <button class="zt w" data-a="go" data-v="plc"><span>⚙</span>Einstellungen</button></div>`}
 function rWrite(){const e=S.e,ps=D.projects.filter(p=>!p.done||p.id===e.projectId);
 return`<div class="zc">
@@ -201,10 +240,10 @@ return`<div class="zc"><div class="zrow"><input id="l-new" placeholder="${ph}" v
 <div class="lb">${rows.map(([v,i])=>`<button class="li" data-a="ledit" data-i="${i}">${esc(v)}</button>`).join('')||'<div class="li">Keine Einträge.</div>'}</div>
 ${k==='units'?'<small>Die oberste Einheit ist die Vorauswahl bei neuem Material.</small>':'<button class="zb l" data-a="lsort">A–Z sortieren</button>'}
 <small>Änderungen gelten für neue Einträge, bereits gespeicherte Stunden bleiben unverändert.</small></div>`}
-const T={week:'Wochenbericht',menu:'Zeiterfassung',write:'Stunden schreiben',over:'Übersicht',proj:'Projekte',plc:'Einstellungen'};
-function render(){titleEl.textContent=view==='plc'&&S.sv?SV[S.sv][0]:T[view];root.innerHTML={menu:rMenu,write:rWrite,over:rOver,proj:rProj,week:rWeek,plc:rPlc}[view]();window.scrollTo(0,0)}
+const T={week:'Wochenbericht',menu:'Zeiterfassung',write:'Stunden schreiben',over:'Übersicht',proj:'Projekte',stat:'Auswertung',plc:'Einstellungen'};
+function render(){titleEl.textContent=view==='plc'&&S.sv?SV[S.sv][0]:T[view];root.innerHTML={menu:rMenu,write:rWrite,over:rOver,proj:rProj,week:rWeek,stat:rStat,plc:rPlc}[view]();window.scrollTo(0,0)}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&view==='write'&&S.e&&S.opened&&S.opened!==iso(new Date())){S.e=newEntry();reloadDay();S.opened=iso(new Date());render()}});
-function go(v){view=v;if(v==='plc'){S.sv=null;S.lq='';S.ln=''}if(v==='week')S.wk=S.wk||monday(iso(new Date()));S.pick=null;S.pm=false;S.ret=null;S.prev=false;S.le=null;S.rc=null;if(v==='write'&&!S.e){S.e=newEntry();reloadDay()}if(v==='write'){S.opened=iso(new Date());migrateMat()}if(v==='over'){S.mode=S.mode||'month';S.sel=S.sel||iso(new Date());S.cur=S.sel}if(v==='proj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.q=''}render()}
+function go(v){view=v;if(v==='stat')S.f=S.f||statDef();if(v==='plc'){S.sv=null;S.lq='';S.ln=''}if(v==='week')S.wk=S.wk||monday(iso(new Date()));S.pick=null;S.pm=false;S.ret=null;S.prev=false;S.le=null;S.rc=null;if(v==='write'&&!S.e){S.e=newEntry();reloadDay()}if(v==='write'){S.opened=iso(new Date());migrateMat()}if(v==='over'){S.mode=S.mode||'month';S.sel=S.sel||iso(new Date());S.cur=S.sel}if(v==='proj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.q=''}render()}
 function adj(k,d){const e=S.e,s=D.step;if(k==='pause')e.pause=Math.max(0,+e.pause+d*s);else e[k]=ft(Math.min(1439,Math.max(0,tm(e[k])+d*s)))}
 function act(a,b,el){const e=S.e;
 if(a==='go')return go(b.v);
@@ -240,6 +279,7 @@ if(a==='dprev'||a==='dnext'){e.date=addD(e.date,a==='dprev'?-1:1);reloadDay(true
 if(a==='tog'){const l=e[b.k],i=l.indexOf(b.v);i<0?l.push(b.v):l.splice(i,1);if(S.pick&&el){const on=i<0;el.classList.toggle('on',on);el.textContent=(on?'☑ ':'☐ ')+b.v;document.querySelector('[data-a=fin]').textContent='Fertig ('+l.length+')';return}return render()}
 if(a==='mtog'){const l=e.material,i=l.findIndex(m=>m.name===b.v),st=(document.querySelector('.ml')||{}).scrollTop||0;if(i<0)l.push({name:b.v,qty:'',unit:D.mu[b.v]||D.units[0]});else l.splice(i,1);render();const m2=document.querySelector('.ml');if(m2)m2.scrollTop=st;if(i<0){const q=document.getElementById('mq-'+(l.length-1));if(q)q.focus()}return}
 if(a==='pick'){S.pick={k:b.k,q:''};return render()}
+if(a==='st-reset'){S.f=statDef();return render()}
 if(a==='wbt'){const t=e.tasks[+b.i];e.wbt=e.wbt||[];const j=e.wbt.indexOf(t);if(j>=0)e.wbt.splice(j,1);else e.wbt.push(t);return render()}
 if(a==='mr-edit'){const r=Mat.rows(e.projectId)[+b.i];if(!r)return;S.me={i:+b.i,q:String(r.q||''),u:r.u||''};return render()}
 if(a==='mr-x'){S.me=null;return render()}
@@ -273,7 +313,7 @@ if(a==='rcancel'){S.ret=null;return render()}
 if(a==='rsave'){const p=D.projects.find(x=>x.id===S.ret.id);p.returns=S.ret.rows.filter(x=>(x.qty||'').trim()).map(x=>({name:x.name,qty:x.qty.trim(),unit:x.unit}));p.done=true;S.ret=null;save();alert('Projekt abgeschlossen. Es ist nicht gelöscht: Unter „Abgeschlossene anzeigen“ findest du es wieder.');return render()}
 if(a==='pall'){S.all=!S.all;return render()}}
 function onIn(ev){const i=ev.target.id,v=ev.target.value;
-if(i==='f-date'&&v){S.e.date=v;reloadDay(true);render()}else if(i==='f-proj'){S.e.projectId=v?+v:'';reloadDay();render()}else if(i==='f-note')S.e.note=v;else if(i==='f-car')S.e.auto=v;else if(i==='w-name'){D.set.name=v;save()}else if(i==='w-mail'){D.set.mail=v;save()}else if(i==='m-qty')S.mq=v;else if(i==='m-sel')S.ms=v;
+if(i&&i.slice(0,3)==='st-'){S.f=S.f||statDef();S.f[i.slice(3)]=v;render()}else if(i==='f-date'&&v){S.e.date=v;reloadDay(true);render()}else if(i==='f-proj'){S.e.projectId=v?+v:'';reloadDay();render()}else if(i==='f-note')S.e.note=v;else if(i==='f-car')S.e.auto=v;else if(i==='w-name'){D.set.name=v;save()}else if(i==='w-mail'){D.set.mail=v;save()}else if(i==='m-qty')S.mq=v;else if(i==='m-sel')S.ms=v;
 else if(i==='p-name')S.p.name=v;else if(i==='p-nr'){S.p.nr=v.replace(/\D/g,'').slice(0,6);ev.target.value=S.p.nr}else if(i==='p-ad')S.p.addr=v;else if(i==='p-tel')S.p.tel=v;else if(i==='m-unit')S.mu=v;else if(i.startsWith('mq-'))S.e.material[+i.slice(3)].qty=v;else if(i.startsWith('mu-')){const m=S.e.material[+i.slice(3)];m.unit=v;D.mu[m.name]=v;save()}else if(i==='rt-sel')S.ret.ms=v;else if(i==='rt-unit')S.ret.mu=v;else if(i==='rt-qty')S.ret.mq=v;else if(i.startsWith('rq-'))S.ret.rows[+i.slice(3)].qty=v;else if(i==='p-cl')S.p.client=v;
 else if(i==='s-hascar'){if(ev.type!=='change')return;D.set.hasCar=ev.target.checked;save();render()}
 else if(i==='s-car'){if(ev.type!=='change')return;D.set.car=v.trim().toUpperCase();ev.target.value=D.set.car;save()}
