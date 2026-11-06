@@ -1,0 +1,41 @@
+const Todo=(()=>{
+const KEY='tf_todo_v1',ON='tf_todo_on',TL='tf_tools_on';
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const SEED=[['Parkettschleifen und Versiegeln',['Schleifpapier Hummel','Randlerschleifpapier','Grund','Lack','Schleifgitter','Silikon','Montagekleber','Aluprofile']],['Vinylboden verlegen',['Vinylboden','Vinylleisten','Aluprofile','Silikon','Montagekleber']],['Laminatboden',['Laminatboden','Unterlage','Sockelleisten','Montagekleber','Aluprofile','Silikon']],['PVC/Vinylplanken/Spachteln',['Vorstrich','Standfeste Spachtelmasse','Nivellierspachtelmasse','PVC/Vinylkleber','Kontaktkleber']]];
+let T={tpl:[],proj:{},seeded:0,last:''};
+try{T=Object.assign(T,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(T))}catch(e){alert('Speichern nicht möglich!')}};
+if(!T.seeded){T.tpl=T.tpl.concat(SEED.map(s=>({id:uid(),name:s[0],cat:'Holz',m:s[1].slice(),w:[]})));T.seeded=1;save()}
+const enabled=()=>localStorage.getItem(ON)!=='0',toolsOn=()=>localStorage.getItem(TL)==='1';
+const Z=()=>Zeit.data(),projs=()=>Z().projects.filter(p=>!p.kind&&!p.done),pn=p=>(p.nr?p.nr+' · ':'')+(p.name||p.addr||'Projekt');
+let root,S={v:'main',pid:'',i:-1};
+const lines=s=>String(s||'').split('\n').map(x=>x.trim()).filter(Boolean);
+const val=id=>((document.getElementById(id)||{}).value||'').trim();
+function sect(t,k,lab){return`<div style="margin-top:8px;font-weight:700">${lab}</div>`+(t[k]||[]).map((x,i)=>`<div class="zrow" style="padding:3px 0"><button class="zb ${x.d?'g':'l'}" style="height:40px;min-width:46px" data-a="td-chk" data-t="${t.id}" data-k="${k}" data-i="${i}">${x.d?'☑':'☐'}</button><span style="flex:1;${x.d?'text-decoration:line-through;opacity:.55':''}">${esc(x.n)}</span><button class="zb r" style="height:34px;min-width:38px" data-a="td-deli" data-t="${t.id}" data-k="${k}" data-i="${i}">✕</button></div>`).join('')+`<div class="zrow" style="margin-top:6px"><input id="td-in-${t.id}-${k}" placeholder="+ ${k==='m'?'Material':'Werkzeug'} hinzufügen" list="td-dl"><button class="zb" data-a="td-addi" data-t="${t.id}" data-k="${k}">＋</button></div>`}
+function card(t){const all=(t.m||[]).concat(toolsOn()?(t.w||[]):[]),dn=all.filter(x=>x.d).length;return`<div class="zcard"><div class="zrow" style="justify-content:space-between"><b>${esc(t.name)}</b><button class="zb r" style="height:34px;min-width:38px" data-a="td-delt" data-t="${t.id}">✕</button></div><small>${dn} von ${all.length} mitgenommen</small>${sect(t,'m','Material')}${toolsOn()?sect(t,'w','Werkzeug (Spezial)'):''}</div>`}
+function render(){let h='';
+if(S.v==='add'){h=`<div class="zcard"><b>Tätigkeit hinzufügen</b><label>Zusatz (z. B. 45 m²)</label><input id="td-ex" placeholder="optional">${T.tpl.map((p,i)=>`<button class="zb" style="width:100%;margin-top:8px;height:auto;min-height:44px;padding:8px 12px;text-align:left" data-a="td-use" data-i="${i}">${esc(p.name)}<br><small>${(p.m||[]).length} Material${(p.w||[]).length?', '+p.w.length+' Werkzeug':''}</small></button>`).join('')}<label style="margin-top:12px">Oder neue Tätigkeit ohne Vorlage</label><input id="td-nm" placeholder="z. B. Türen kürzen"><button class="zb g" style="width:100%;margin-top:8px" data-a="td-free">Hinzufügen</button><button class="zb l" style="width:100%;margin-top:8px" data-a="td-back">Abbrechen</button></div>`}
+else if(S.v==='tpl'){h=`<div class="zcard"><b>Vorlagen</b><br><small>Eine Vorlage ist eine Tätigkeit mit ihrer Material- und Werkzeugliste.</small>${T.tpl.map((p,i)=>`<div class="zrow" style="justify-content:space-between;padding:6px 0"><span>${esc(p.name)}</span><span style="display:flex;gap:6px"><button class="zb" style="height:36px" data-a="td-edtpl" data-i="${i}">✎</button><button class="zb r" style="height:36px" data-a="td-deltpl" data-i="${i}">✕</button></span></div>`).join('')||'<br>Noch keine Vorlagen.'}<button class="zb g" style="width:100%;margin-top:8px" data-a="td-newtpl">＋ Neue Vorlage</button><button class="zb l" style="width:100%;margin-top:8px" data-a="td-back">Zurück</button></div>`}
+else if(S.v==='edtpl'){const p=S.i>=0?T.tpl[S.i]:{name:'',m:[],w:[]};h=`<div class="zcard"><b>${S.i>=0?'Vorlage bearbeiten':'Neue Vorlage'}</b><label>Name der Tätigkeit</label><input id="td-tn" value="${esc(p.name)}"><label>Material (eine Zeile pro Artikel)</label><textarea id="td-tm" rows="8">${esc((p.m||[]).join('\n'))}</textarea>${toolsOn()?`<label>Werkzeug (eine Zeile pro Artikel)</label><textarea id="td-tw" rows="4">${esc((p.w||[]).join('\n'))}</textarea>`:''}<button class="zb g" style="width:100%;margin-top:8px" data-a="td-savetpl">Speichern</button><button class="zb l" style="width:100%;margin-top:8px" data-a="td-back">Abbrechen</button></div>`}
+else{const ps=projs();if(!ps.some(p=>String(p.id)===String(S.pid)))S.pid=(ps.find(p=>String(p.id)===String(T.last))||ps[0]||{}).id||'';
+const list=S.pid?(T.proj[S.pid]||[]):[],dl=(Z().materials||[]).map(m=>`<option value="${esc(m)}">`).join('');
+h=ps.length?`<div class="zcard"><label>Projekt</label><select id="td-p">${ps.map(p=>`<option value="${p.id}" ${String(p.id)===String(S.pid)?'selected':''}>${esc(pn(p))}</option>`).join('')}</select><datalist id="td-dl">${dl}</datalist></div>${list.map(card).join('')||'<div class="zcard">Noch keine Tätigkeit für dieses Projekt.</div>'}<button class="zb g" style="width:100%;height:50px;margin-top:8px" data-a="td-add">＋ Tätigkeit hinzufügen</button><button class="zb l" style="width:100%;margin-top:8px" data-a="td-tpl">Vorlagen verwalten</button>`:'<div class="zcard">Lege zuerst in der Zeiterfassung ein Projekt an.</div>'}
+root.innerHTML=`<div class="zc" style="padding:4px 0">${h}</div>`}
+function find(id){return(T.proj[S.pid]||[]).find(t=>t.id===id)}
+function click(ev){const b=ev.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;if(a.slice(0,3)!=='td-')return;
+if(a==='td-chk'){const x=find(b.dataset.t)[b.dataset.k][+b.dataset.i];x.d=x.d?0:1;save();return render()}
+if(a==='td-deli'){find(b.dataset.t)[b.dataset.k].splice(+b.dataset.i,1);save();return render()}
+if(a==='td-addi'){const n=val('td-in-'+b.dataset.t+'-'+b.dataset.k);if(!n)return;const t=find(b.dataset.t);(t[b.dataset.k]=t[b.dataset.k]||[]).push({n,d:0});save();return render()}
+if(a==='td-delt'){if(!confirm('Diese Tätigkeit mit ihrer Liste entfernen?'))return;T.proj[S.pid]=(T.proj[S.pid]||[]).filter(t=>t.id!==b.dataset.t);save();return render()}
+if(a==='td-add'){S.v='add';return render()}
+if(a==='td-back'){S.v=S.v==='edtpl'?'tpl':'main';return render()}
+if(a==='td-use'){const p=T.tpl[+b.dataset.i],ex=val('td-ex');(T.proj[S.pid]=T.proj[S.pid]||[]).push({id:uid(),name:p.name+(ex?' – '+ex:''),m:(p.m||[]).map(n=>({n,d:0})),w:(p.w||[]).map(n=>({n,d:0}))});save();S.v='main';return render()}
+if(a==='td-free'){const n=val('td-nm');if(!n)return alert('Bitte einen Namen eingeben.');(T.proj[S.pid]=T.proj[S.pid]||[]).push({id:uid(),name:n,m:[],w:[]});save();S.v='main';return render()}
+if(a==='td-tpl'){S.v='tpl';return render()}
+if(a==='td-newtpl'){S.i=-1;S.v='edtpl';return render()}
+if(a==='td-edtpl'){S.i=+b.dataset.i;S.v='edtpl';return render()}
+if(a==='td-deltpl'){if(!confirm('Diese Vorlage löschen? Bereits angelegte Tätigkeiten bleiben erhalten.'))return;T.tpl.splice(+b.dataset.i,1);save();return render()}
+if(a==='td-savetpl'){const n=val('td-tn');if(!n)return alert('Bitte einen Namen eingeben.');const old=S.i>=0?T.tpl[S.i]:{id:uid(),cat:'',w:[]},p=Object.assign({},old,{name:n,m:lines((document.getElementById('td-tm')||{}).value)});if(document.getElementById('td-tw'))p.w=lines(document.getElementById('td-tw').value);if(S.i>=0)T.tpl[S.i]=p;else T.tpl.push(p);save();S.v='tpl';return render()}}
+function change(ev){if(ev.target.id==='td-p'){S.pid=ev.target.value;T.last=S.pid;save();render()}}
+return{enabled,toolsOn,open(r,t){t.textContent='To-do-Liste';r.innerHTML='<div></div>';root=r.firstChild;S={v:'main',pid:'',i:-1};root.addEventListener('click',click);root.addEventListener('change',change);render()},back(){if(S.v!=='main'){S.v=S.v==='edtpl'?'tpl':'main';render();return true}return false}}})();

@@ -16,7 +16,7 @@ header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
 .tile{border:0;border-radius:18px;color:#fff;font-size:clamp(1.1rem,4.6vw,1.5rem);font-weight:700;padding:14px 6px 14px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:8px;box-shadow:0 4px 10px rgba(0,0,0,.3);cursor:pointer;min-height:0}
 .tile:active{transform:scale(.97)}
 .ic{flex:1;width:74%;min-height:70px;background-position:center;background-repeat:no-repeat;background-size:contain}
-.tile.wide{grid-column:1/3;flex-direction:row;justify-content:center;gap:16px;padding:16px}.tile.wide svg{width:54px;height:54px;fill:none;stroke:#fff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.kont{background:linear-gradient(#2fa7b0,#0e7c86)}.bak{background:linear-gradient(#6b7685,#444d5a)}.tile.wide .em{font-size:2.2rem;line-height:1}
+.tile.wide{grid-column:1/3;flex-direction:row;justify-content:center;gap:16px;padding:16px}.tile.wide svg{width:54px;height:54px;fill:none;stroke:#fff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.kont{background:linear-gradient(#2fa7b0,#0e7c86)}.bak{background:linear-gradient(#6b7685,#444d5a)}.todo{background:linear-gradient(#d99a2b,#a5650e)}.tile.wide .em{font-size:2.2rem;line-height:1}
 .zeit{background:linear-gradient(#3f86d0,#0659AA)}.mat{background:linear-gradient(#5dbb67,#2e8b3e)}
 .regie{background:linear-gradient(#f4ae3a,#e06f1f)}.fahrt{background:linear-gradient(#8a6bc8,#5a3fa3)}
 .close{border:0;border-radius:14px;background:linear-gradient(#8a95a3,#6b7683);color:#fff;font-size:1.05rem;font-weight:700;padding:18px;font-size:1.2rem;width:100%;cursor:pointer}
@@ -37,6 +37,7 @@ header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
    <button class="tile regie" data-m="regie"><span class="ic" style="background-image:url(regie.png),url(icons/regie.png)"></span>Regiebericht</button>
    <button class="tile fahrt" data-m="fahrt"><span class="ic" style="background-image:url(fahrt.png),url(icons/fahrt.png)"></span>Fahrtenbuch</button>
   <button class="tile wide kont" data-m="kontakt"><svg viewBox="0 0 64 64"><rect x="12" y="6" width="42" height="52" rx="5"/><path d="M12 18h-4M12 32h-4M12 46h-4"/><circle cx="33" cy="26" r="7"/><path d="M21 46c0-8 5-12 12-12s12 4 12 12"/></svg>Kontakte &amp; Infos</button>
+  <button class="tile wide todo" id="tileTodo" data-m="todo"><span class="em">✅</span>To-do-Liste</button>
   <button class="tile wide bak" data-m="backup"><span class="em">⚙</span>Einstellungen</button>
   </div>
  </div>
@@ -44,15 +45,16 @@ header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
   <div class="bar" id="modbar"><button id="back" aria-label="Zurück"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12H5M11.5 5.5L5 12l6.5 6.5"/></svg></button><span id="modtitle"></span></div>
   <div class="card" id="modbody"></div>
  </div>
- <div class="status"><span class="dot" id="dot"></span><span id="st"></span> · Version 048</div>
+ <div class="status"><span class="dot" id="dot"></span><span id="st"></span> · Version 049</div>
 </div>
 <script src="jspdf.min.js"></script>
 <script src="zeit.js"></script>
 <script src="kontakt.js"></script>
 <script src="material.js"></script>
 <script src="regie.js"></script>
+<script src="todo.js"></script>
 <script>
-const MODS={zeit:['Zeiterfassung','#0659AA'],mat:['Materialschein','#2e8b3e'],regie:['Regiebericht','#e06f1f'],fahrt:['Fahrtenbuch','#5a3fa3'],kontakt:['Kontakte & Infos','#0e7c86'],backup:['Einstellungen','#444d5a']};
+const MODS={zeit:['Zeiterfassung','#0659AA'],mat:['Materialschein','#2e8b3e'],regie:['Regiebericht','#e06f1f'],fahrt:['Fahrtenbuch','#5a3fa3'],kontakt:['Kontakte & Infos','#0e7c86'],todo:['To-do-Liste','#a5650e'],backup:['Einstellungen','#444d5a']};
 
 (()=>{
 const st=document.createElement('style');st.textContent='.tfov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99999;padding:24px}.tfbox{background:#fff;border-radius:16px;padding:18px;max-width:420px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.35);font-family:inherit}.tfmsg{white-space:pre-line;font-size:1.05rem;margin-bottom:16px;color:#1d2733}.tfbtn{display:flex;gap:10px}.tfb{flex:1;border:0;border-radius:10px;height:46px;font-size:1.05rem;font-weight:700;color:#fff;background:#0659AA}.tfb.l{background:#8a95a3}.tftoast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#2e8b3e;color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;z-index:99999;box-shadow:0 4px 14px rgba(0,0,0,.35);max-width:88%;text-align:center;transition:opacity .4s}';document.head.appendChild(st);
@@ -67,6 +69,7 @@ const o=box('<div class="tfmsg">'+esc(m)+'</div><button class="tfb" id="tfok" st
 window.confirm=m=>{if(ok)return true;const t=lastT;tfAsk(m,()=>{if(t&&t.isConnected){ok=true;try{t.click()}finally{ok=false}}});return false};
 })();
 (()=>{let st=null;const upd=()=>{const pv=!!document.querySelector('#rg-pv,.pv');if(pv!==st){st=pv;document.documentElement.style.zoom=pv?'1':(localStorage.getItem('tf_scale')||'1')}};new MutationObserver(upd).observe(document.body,{childList:true,subtree:true})})();
+document.getElementById('tileTodo').style.display=Todo.enabled()?'':'none';
 try{const z0=localStorage.getItem('tf_scale');if(z0)document.documentElement.style.zoom=z0}catch(e){}
 const Backup=(()=>{
 const LAST='tf_lastbackup',p2=n=>String(n).padStart(2,'0');
@@ -74,16 +77,18 @@ const keys=()=>Object.keys(localStorage).filter(k=>k.startsWith('tf_')&&k!==LAST
 const stamp=()=>{const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'_'+p2(d.getHours())+p2(d.getMinutes())};
 const dmy=t=>{const d=new Date(t);return isNaN(d)?'':p2(d.getDate())+'.'+p2(d.getMonth()+1)+'.'+d.getFullYear()+' '+p2(d.getHours())+':'+p2(d.getMinutes())};
 function make(){const data={};keys().forEach(k=>data[k]=localStorage.getItem(k));const created=new Date().toISOString();
-const nm='Trendfloor-Sicherung_'+stamp()+'.json';return{nm,n:Object.keys(data).length,file:new Blob([JSON.stringify({app:'Trendfloor',version:48,created,data})],{type:'application/json'}),created}}
+const nm='Trendfloor-Sicherung_'+stamp()+'.json';return{nm,n:Object.keys(data).length,file:new Blob([JSON.stringify({app:'Trendfloor',version:49,created,data})],{type:'application/json'}),created}}
 function mark(c){try{localStorage.setItem(LAST,c)}catch(e){}}
 let root,note='';
 function view(){const l=localStorage.getItem(LAST);
-root.innerHTML='<div class="zc" style="display:flex;flex-direction:column;gap:12px"><div class="zcard"><b>Anzeigegröße</b><br><small>Gilt nur für dieses Handy.</small><div style="display:flex;gap:6px;margin-top:8px">'+[['Klein','0.8'],['Mittel','0.9'],['Normal','1'],['Groß','1.15']].map(a=>'<button class="zb '+((localStorage.getItem('tf_scale')||'1')===a[1]?'g':'l')+'" style="flex:1;padding:0 4px" data-sz="'+a[1]+'">'+a[0]+'</button>').join('')+'</div></div><div class="zcard">Datensicherung: Alle Daten (Zeiterfassung, Material, Regieberichte, Kontakte) liegen nur auf diesem Handy. Mach regelmäßig eine Sicherung und bewahre die Datei außerhalb der App auf (z. B. Google Drive oder per Mail an dich selbst).<br><br><b>Letzte Sicherung:</b> '+(l?dmy(l):'noch keine')+'</div>'
+const tdOn=Todo.enabled(),tlOn=Todo.toolsOn();
+root.innerHTML='<div class="zc" style="display:flex;flex-direction:column;gap:12px"><div class="zcard"><b>Funktionen</b><div style="display:flex;gap:6px;margin-top:8px"><button class="zb '+(tdOn?'g':'l')+'" style="flex:1;padding:0 4px" data-tg="todo">To-do-Liste: '+(tdOn?'An':'Aus')+'</button><button class="zb '+(tlOn?'g':'l')+'" style="flex:1;padding:0 4px" data-tg="tools">Werkzeuge: '+(tlOn?'An':'Aus')+'</button></div><small>Werkzeuge erscheinen in der To-do-Liste, wenn sie eingeschaltet sind.</small></div><div class="zcard"><b>Anzeigegröße</b><br><small>Gilt nur für dieses Handy.</small><div style="display:flex;gap:6px;margin-top:8px">'+[['Klein','0.8'],['Mittel','0.9'],['Normal','1'],['Groß','1.15']].map(a=>'<button class="zb '+((localStorage.getItem('tf_scale')||'1')===a[1]?'g':'l')+'" style="flex:1;padding:0 4px" data-sz="'+a[1]+'">'+a[0]+'</button>').join('')+'</div></div><div class="zcard">Datensicherung: Alle Daten (Zeiterfassung, Material, Regieberichte, Kontakte) liegen nur auf diesem Handy. Mach regelmäßig eine Sicherung und bewahre die Datei außerhalb der App auf (z. B. Google Drive oder per Mail an dich selbst).<br><br><b>Letzte Sicherung:</b> '+(l?dmy(l):'noch keine')+'</div>'
 +'<button class="zb g" style="height:54px" id="bk-save">💾 Sicherung speichern</button>'
 +'<button class="zb" style="height:54px" id="bk-share">📤 Sicherung senden / teilen</button>'
 +'<button class="zb r" style="height:54px" id="bk-restore">♻ Sicherung wiederherstellen</button>'
 +'<input type="file" id="bk-file" accept=".json,application/json" style="display:none">'
 +(note?'<div class="zcard"><small>'+note+'</small></div>':'')+'</div>';
+root.querySelectorAll('[data-tg]').forEach(b=>b.onclick=()=>{const k=b.dataset.tg==='todo'?'tf_todo_on':'tf_tools_on',cur=b.dataset.tg==='todo'?Todo.enabled():Todo.toolsOn();try{localStorage.setItem(k,cur?'0':'1')}catch(e){}document.getElementById('tileTodo').style.display=Todo.enabled()?'':'none';view()});
 root.querySelectorAll('[data-sz]').forEach(b=>b.onclick=()=>{try{localStorage.setItem('tf_scale',b.dataset.sz)}catch(e){}document.documentElement.style.zoom=b.dataset.sz;view()});
 document.getElementById('bk-save').onclick=()=>{const b=make(),a=document.createElement('a');a.href=URL.createObjectURL(b.file);a.download=b.nm;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);mark(b.created);note='Gesichert: '+b.n+' Datenbereiche in '+b.nm+' (Ordner „Downloads“).';view()};
 document.getElementById('bk-share').onclick=()=>{const b=make(),f=new File([b.file],b.nm,{type:'application/json'});
@@ -103,10 +108,10 @@ function show(m){
  if(!MODS[m]){$('home').classList.remove('hide');$('mod').classList.add('hide');return;}
  $('home').classList.add('hide');$('mod').classList.remove('hide');
  $('modbar').style.background=MODS[m][1];$('modtitle').textContent=MODS[m][0];
- $('modbody').classList.toggle('card',m!=='zeit'&&m!=='kontakt'&&m!=='mat');if(m==='zeit')Zeit.open($('modbody'),$('modtitle'));else if(m==='kontakt')Kontakt.open($('modbody'),$('modtitle'));else if(m==='mat')Mat.open($('modbody'),$('modtitle'));else if(m==='regie')Regie.open($('modbody'),$('modtitle'));else if(m==='backup')Backup.open($('modbody'));else $('modbody').innerHTML='<b>'+MODS[m][0]+'</b><br>Dieses Modul wird als Nächstes eingebaut.';
+ $('modbody').classList.toggle('card',m!=='zeit'&&m!=='kontakt'&&m!=='mat'&&m!=='todo');if(m==='zeit')Zeit.open($('modbody'),$('modtitle'));else if(m==='kontakt')Kontakt.open($('modbody'),$('modtitle'));else if(m==='mat')Mat.open($('modbody'),$('modtitle'));else if(m==='regie')Regie.open($('modbody'),$('modtitle'));else if(m==='todo')Todo.open($('modbody'),$('modtitle'));else if(m==='backup')Backup.open($('modbody'));else $('modbody').innerHTML='<b>'+MODS[m][0]+'</b><br>Dieses Modul wird als Nächstes eingebaut.';
 }
 document.querySelectorAll('.tile').forEach(b=>b.onclick=()=>{location.hash=b.dataset.m});
-$('back').onclick=()=>{if(location.hash==='#zeit'&&Zeit.back())return;if(location.hash==='#kontakt'&&Kontakt.back())return;if(location.hash==='#mat'&&Mat.back())return;if(location.hash==='#regie'&&Regie.back())return;location.hash=''};
+$('back').onclick=()=>{if(location.hash==='#zeit'&&Zeit.back())return;if(location.hash==='#kontakt'&&Kontakt.back())return;if(location.hash==='#mat'&&Mat.back())return;if(location.hash==='#regie'&&Regie.back())return;if(location.hash==='#todo'&&Todo.back())return;location.hash=''};
 addEventListener('hashchange',()=>show(location.hash.slice(1)));
 function net(){const on=navigator.onLine;$('dot').className='dot '+(on?'on':'off');$('st').textContent=on?'Online':'Offline – alles funktioniert weiter';}
 addEventListener('online',net);addEventListener('offline',net);net();show(location.hash.slice(1));
