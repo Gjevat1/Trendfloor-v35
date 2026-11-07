@@ -1,4 +1,4 @@
-const V='trendfloor-057';
+const V='trendfloor-058';
 const FILES=['./','index.html','zeit.js','kontakt.js','material.js','regie.js','todo.js','fahrt.js','fahrt.html','jspdf.min.js','manifest.webmanifest','icon-192.png','icon-512.png','logo.jpg','zeit.png','mat.png','regie.png','fahrt.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>Promise.all(FILES.map(f=>c.add(f).catch(()=>{})))));self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==V).map(x=>caches.delete(x)))));self.clients.claim();});
