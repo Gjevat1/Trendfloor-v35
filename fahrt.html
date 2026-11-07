@@ -1,0 +1,219 @@
+<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+
+<title>Fahrtenbuch Trendfloor</title>
+<style>
+:root{--o:#e8832f;--bg:#2b2b2b;--c:#3d3d3d;--tx:#f2f2f2;--mu:#a8a8a8;font-family:system-ui,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);padding-bottom:64px;font-size:15px}
+header{background:var(--o);color:#1b1b1b;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;font-size:18px;font-weight:600;position:sticky;top:0;z-index:5}
+main{padding:12px}
+.card{background:var(--c);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+button,select,input,textarea{font:inherit;color:inherit}
+.b{width:100%;border:0;border-radius:10px;background:var(--o);color:#1b1b1b;font-weight:600;padding:11px 8px;margin:4px 0}
+.b.s{background:#585858;color:var(--tx)}.b.r{background:#b3413a;color:#fff}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+input,select,textarea{width:100%;background:var(--bg);border:1px solid #555;border-radius:8px;padding:9px 10px;margin:2px 0 8px}
+label{color:var(--mu);font-size:12px;letter-spacing:.03em}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#1b1b1b;padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;background:0;border:0;padding:11px 4px;color:var(--mu);font-size:13px}
+nav button.on{color:var(--o);font-weight:700}
+.mu{color:var(--mu);font-size:12px}.row{padding:8px 4px;border-top:1px solid #555}h3{margin:0 0 8px;font-size:17px}.mb{float:right;background:#4a4a4a;border:0;border-radius:10px;width:34px;height:34px;font-size:20px;line-height:1;color:var(--tx)}.ac{display:flex;justify-content:space-around;margin:8px 0 12px}.ac button{background:0;border:0;color:var(--tx);display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px}.ac i{font-style:normal;width:56px;height:56px;border-radius:50%;background:#4a4a4a;display:flex;align-items:center;justify-content:center}.ac .dg i{background:#e09089}.chip{width:auto;display:inline-block;padding:6px 12px;margin:2px 4px 8px 0;font-weight:400}.sh{color:var(--o);font-size:12px;font-weight:600;margin:14px 4px 6px;letter-spacing:.04em}.tl{display:flex;flex-direction:column;align-items:center;gap:6px;background:0;border:0;color:var(--o);font-size:13px;padding:4px}.tl i{font-style:normal;width:60px;height:60px;border:2px solid var(--o);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px}
+dialog{background:var(--c);color:var(--tx);border:0;border-radius:16px;width:92%;max-width:480px;max-height:88vh;overflow:auto}
+dialog::backdrop{background:#000a}
+.st{display:flex;gap:10px;padding:6px 0;border-top:1px solid #555;font-size:14px}
+@media print{nav,header,.np{display:none}body{background:#fff;color:#000}.card{background:#fff;border:1px solid #999}.mu{color:#444}}
+</style></head><body>
+<main id="m"></main>
+<nav><button data-t="heute">Heute</button><button data-t="aus">Ausgabe</button><button data-t="buch">Fahrtenbuch</button><button data-t="set">Einstellungen</button></nav>
+<dialog id="d"></dialog><div id="t" style="display:none;position:fixed;left:12px;right:12px;bottom:76px;background:#b3413a;color:#fff;padding:10px 12px;border-radius:10px;z-index:50"></div>
+<script>
+const K='tf_fahrt_v1',D=document.querySelector('#d'),$=s=>document.querySelector(s),pad=n=>String(n).padStart(2,'0');
+const Z=()=>{try{return parent!==window&&parent.Zeit?parent.Zeit.data():null}catch(e){return null}};
+const kol=()=>{const z=Z();return z?[...(z.colleagues||[])]:lines(S.set.kollegen)};
+let S;try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
+if(!S){try{const o=localStorage.getItem('ftb1');if(o){S=JSON.parse(o);localStorage.setItem(K,o)}}catch(e){}}
+S=S||{};S.set=Object.assign({fahrer:(Z()&&Z().set&&Z().set.name)||'Xhevat',home:'Grundtnerstraße 1, 9500 Villach',firma:'Auenweg 35, 9500 Villach',kollegen:'',zwecke:'Baustelle\nMaterial holen\nFirma\nBesprechung\nCafé/Pause\nMontage\nSonstiges',lief:'Frischeis\nWürth\nEFR\nBauhaus\nObi'},S.set);
+S.tage=S.tage||[];S.orte=S.orte||{};S.aus=S.aus||[];S.bs=S.bs||{};S.priv=S.priv||[];
+if(!Object.keys(S.bs).length)S.tage.forEach(t=>t.st.forEach(s=>{if(s.typ==='Baustelle'&&s.adr){const e=S.bs[s.adr]||(S.bs[s.adr]={t:0,w:[]});e.t=Math.max(e.t,Date.parse(s.zeit));if(s.name&&!e.w.includes(s.name))e.w.push(s.name)}}));
+const msg=t=>{const e=D.open?$('#e'):$('#t');if(!e)return;e.textContent=t;e.style.display='block';clearTimeout(msg.h);msg.h=setTimeout(()=>e.style.display='none',6000)};
+const ortl=q=>{const k=Object.keys(S.orte).filter(x=>x.toLowerCase().includes(q.toLowerCase())).slice(-4).reverse();return k.length?'<label>Früher verwendet</label>'+k.map(x=>'<div class="row" data-k="'+esc(x)+'"><b>'+esc(x)+'</b><div class="mu">'+esc(S.orte[x])+'</div></div>').join(''):''};
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){msg('Speichern fehlgeschlagen')}};
+const lines=t=>t.split('\n').map(x=>x.trim()).filter(Boolean);
+const dstr=d=>['So.','Mo.','Di.','Mi.','Do.','Fr.','Sa.'][d.getDay()]+' '+pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+String(d.getFullYear()).slice(2);
+const tstr=d=>pad(d.getHours())+':'+pad(d.getMinutes());
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cur=()=>S.tage.find(t=>!t.fertig),mk=t=>{const d=new Date(t.st[0].zeit);return d.getFullYear()+'-'+pad(d.getMonth()+1)};
+let tab='heute',mon='';
+const gps=()=>new Promise((r,j)=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>r(p.coords),j,{enableHighAccuracy:true,timeout:15000}):j({code:0}));
+async function addr(){const c=await gps();try{const j=await(await fetch('https://nominatim.openstreetmap.org/reverse?format=json&accept-language=de&lat='+c.latitude+'&lon='+c.longitude)).json(),a=j.address||{};
+const s=[a.road,a.house_number].filter(Boolean).join(' '),o=[a.postcode,a.city||a.town||a.village||a.municipality].filter(Boolean).join(' ');return [s,o].filter(Boolean).join(', ')||j.display_name||''}catch(e){return c.latitude.toFixed(5)+', '+c.longitude.toFixed(5)}}
+async function start(){const l=[...S.tage].reverse().find(t=>t.kmE);
+const t={id:Date.now(),fahrer:S.set.fahrer,bf:['',''],aus:false,kmS:l?l.kmE:'',kmE:'',fertig:false,st:[{typ:'Start',zeit:new Date().toISOString(),name:'',adr:'',zweck:''}]};
+S.tage.push(t);save();render();let a='';try{a=await addr()}catch(e){}t.st[0].adr=a||S.set.home;save();if(tab==='heute')render()}
+const upd=(k,v)=>{cur()[k]=v;save()},bf=(i,v)=>{cur().bf[i]=v;save()},sv=(k,v)=>{S.set[k]=v;save()};
+async function loc(id,b){const el=$('#'+id);b.disabled=true;b.textContent='Standort wird gesucht …';
+try{const a=await addr();el.value=a;el.dispatchEvent(new Event('input'));el.dispatchEvent(new Event('change'))}
+catch(e){msg(e&&e.code===1?'Standortzugriff nicht erlaubt (im Test oft blockiert). In der installierten App erlauben.':'Standort nicht verfügbar. Bitte Adresse eintippen.')}
+b.disabled=false;b.textContent='📍 Standort ermitteln'}
+const t0=v=>{cur().st[0].adr=v;save()};
+async function station(typ){const t=cur(),z=new Date().toISOString(),zw=lines(S.set.zwecke),
+def={Baustelle:'Baustelle',Material:'Material holen',Firma:'Firma',Pause:'Café/Pause',Ende:t.aus?'Montage':''}[typ],
+h={Ende:'Ende / Heimfahrt',Material:'Material holen',Pause:'Café / Pause'}[typ]||typ;
+D.innerHTML='<h3>'+h+'</h3><label>Name / Baustelle</label><input id="n" autocomplete="off"><div id="ol2">'+ortl('')+'</div>'+
+'<label>Adresse</label><input id="a" placeholder="Adresse eintippen oder Standort ermitteln"><button class="b s" style="padding:12px;margin:0 0 10px" onclick="loc(\'a\',this)">📍 Standort ermitteln</button><label>Zweck</label><select id="z"><option></option>'+zw.map(x=>'<option'+(x===def?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select>'+
+(typ==='Ende'?'<label>Tachostand Ende (km)</label><input id="k" type="number" inputmode="numeric">':'')+
+'<div id="e" style="display:none;color:#ffb4a8;margin:4px 0"></div><div class="g"><button class="b s" id="x">Abbrechen</button><button class="b" id="ok">Speichern</button></div>';
+D.showModal();let ty=false;
+if(typ==='Firma'){$('#n').value='Trendfloor';$('#a').value=S.set.firma;ty=true}
+$('#a').oninput=()=>ty=true;
+$('#n').oninput=e=>{$('#ol2').innerHTML=ortl(e.target.value);const v=S.orte[e.target.value];if(v){$('#a').value=v;ty=true}};$('#ol2').onclick=e=>{const r=e.target.closest('.row');if(r){const k=r.dataset.k;$('#n').value=k;$('#a').value=S.orte[k];ty=true;$('#ol2').innerHTML=''}};
+$('#x').onclick=()=>D.close();
+if(!ty)addr().then(a=>{if(!ty&&D.open)$('#a').value=a}).catch(()=>{if(!ty&&D.open&&typ==='Ende')$('#a').value=S.set.home});
+$('#ok').onclick=()=>{const n=$('#n').value.trim(),a=$('#a').value.trim();
+if(typ==='Ende'){const k=+$('#k').value;if(!k){msg('Bitte Tachostand eingeben');return}if(t.kmS&&k<t.kmS){msg('Tachostand Ende ist kleiner als Start');return}t.kmE=k;t.fertig=true}
+t.st.push({typ,zeit:z,name:n,adr:a,zweck:$('#z').value});if(n||a)S.orte[n||a]=a||n;
+save();D.close();render()}}
+function stl(t){let n=0;return t.st.map(s=>{const l=s.typ==='Start'||s.typ==='Ende'?s.typ:(++n)+'. '+s.typ;
+return '<div class="st"><span>'+tstr(new Date(s.zeit))+'</span><div><b>'+l+'</b> '+esc(s.name)+'<div class="mu">'+esc(s.adr)+(s.zweck?' · '+esc(s.zweck):'')+(s.bf&&(s.bf[0]||s.bf[1])?' · mit '+s.bf.filter(Boolean).map(esc).join(', '):'')+'</div></div></div>'}).join('')}
+function heute(){const t=cur();
+if(!t)return '<div class="card"><p class="mu">'+dstr(new Date())+'</p><button class="b" onclick="start()" style="font-size:20px;padding:22px">▶ Start</button></div>'+pv(1)+pv(0);
+const ko=[...new Set([S.set.fahrer,...kol()])].filter(Boolean),o=(v,e)=>(e?'':'<option></option>')+ko.map(x=>'<option'+(x===v?' selected':'')+'>'+esc(x)+'</option>').join('');
+return pv(1)+'<div class="card"><b>'+dstr(new Date(t.st[0].zeit))+'</b><br><label>Fahrer</label><select onchange="upd(\'fahrer\',this.value)">'+o(t.fahrer,1)+'</select>'+
+'<div class="g"><div><label>Beifahrer 1</label><select onchange="bf(0,this.value)">'+o(t.bf[0])+'</select></div><div><label>Beifahrer 2</label><select onchange="bf(1,this.value)">'+o(t.bf[1])+'</select></div></div>'+
+'<label><input type="checkbox" style="width:auto" '+(t.aus?'checked':'')+' onchange="upd(\'aus\',this.checked)"> Auswärts / Montage</label><br><br>'+
+'<label>Tachostand Start (km)</label><input type="number" inputmode="numeric" value="'+t.kmS+'" onchange="upd(\'kmS\',+this.value)"><label>Startadresse</label><input id="sa" value="'+esc(t.st[0].adr)+'" onchange="t0(this.value)"><button class="b s" style="padding:12px;margin:0" onclick="loc(\'sa\',this)">📍 Standort ermitteln</button></div>'+
+'<div class="g"><button class="b s" onclick="station(\'Firma\')">Firma</button><button class="b" onclick="bau()">+ Baustelle</button><button class="b s" onclick="mat()">Material holen</button><button class="b s" onclick="station(\'Pause\')">Café / Pause</button></div>'+
+pv(0)+'<button class="b r" onclick="station(\'Ende\')">■ Ende (Heimfahrt)</button><div class="card">'+stl(t)+'</div>'}
+const filt=()=>S.tage.filter(t=>!mon||mk(t)===mon).sort((a,b)=>a.st[0].zeit<b.st[0].zeit?-1:1);
+const sd=(a,b)=>new Date(a).toDateString()===new Date(b).toDateString(),pk=t=>S.priv.filter(p=>p.fertig&&sd(p.ts,t.st[0].zeit)).reduce((a,p)=>a+p.km,0),dk=t=>t.kmE&&t.kmS?Math.max(0,t.kmE-t.kmS-pk(t)):0;
+function rows(l){const R=[['Datum','Abfahrt','Ankunft','Ausgangspunkt','Zielpunkt','km-Stand Abfahrt','km-Stand Ankunft','gefahrene km betrieblich','gefahrene km privat','getankt Liter','getankt km-Stand','Zweck der Fahrt','Fahrer','Beifahrer 1','Beifahrer 2']],pl=s=>[s.name,s.adr].filter(Boolean).join(', ');
+l.forEach(t=>{const L=t.st,tk=S.aus.filter(x=>x.typ==='Tanken'&&sd(x.ts,t.st[0].zeit));for(let i=0;i<L.length-1;i++){const a=L[i],b=L[i+1],f=i===0,e=i===L.length-2&&t.fertig;
+R.push([dstr(new Date(a.zeit)),tstr(new Date(a.zeit)),tstr(new Date(b.zeit)),pl(a),pl(b),f?t.kmS:'',e?t.kmE:'',e?dk(t):'','',f&&tk.length?fm(tk.reduce((s,x)=>s+x.l,0),2):'',f&&tk.length?tk[tk.length-1].km:'',b.zweck,t.fahrer,(b.bf||t.bf)[0],(b.bf||t.bf)[1]])}});
+S.priv.filter(p=>p.fertig&&(!mon||mk({st:[{zeit:p.ts}]})===mon)).forEach(p=>{const a=new Date(p.ts),b=new Date(p.ts2);R.push([dstr(a),tstr(a),tstr(b),p.a1,p.a2,'','','',p.km,'','','Privatfahrt','','',''])});
+return R}
+const csv=l=>'\ufeff'+rows(l).map(r=>r.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+async function exp(){const f=new File([csv(filt())],'Fahrtenbuch'+(mon?'_'+mon:'')+'.csv',{type:'text/csv'});
+if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'Fahrtenbuch'});return}catch(e){if(e.name==='AbortError')return}}
+const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;a.click()}
+const del=id=>{D.innerHTML='<h3>Diesen Tag löschen?</h3><p class="mu">Der Eintrag kann nicht wiederhergestellt werden.</p><div class="g"><button class="b s" id="x">Abbrechen</button><button class="b r" id="ok">Löschen</button></div>';D.showModal();$('#x').onclick=()=>D.close();$('#ok').onclick=()=>{S.tage=S.tage.filter(t=>t.id!==id);save();D.close();render()}};
+const lief=()=>lines(S.set.lief||'').map(x=>{const p=x.split('|');return{n:p[0].trim(),a:(p[1]||'').trim()}});
+const pjl=q=>{const z=Z();if(!z)return'';const last={};(z.entries||[]).forEach(e=>{if(e.projectId&&(!last[e.projectId]||e.date>last[e.projectId]))last[e.projectId]=e.date});q=(q||'').toLowerCase();
+const k=(z.projects||[]).filter(p=>!p.done&&!p.kind&&(!q||[p.name,p.client,p.addr,p.nr].join(' ').toLowerCase().includes(q))).sort((a,b)=>(last[b.id]||'').localeCompare(last[a.id]||'')).slice(0,5);
+return k.length?'<label>Projekte aus der Zeiterfassung</label>'+k.map(p=>'<div class="row" data-p="'+p.id+'"><b>'+esc(p.addr||p.name)+'</b><div class="mu">'+esc([p.client,p.addr?p.name:'',p.nr].filter(Boolean).join(' · '))+'</div></div>').join(''):''};
+const bsl=q=>{const k=Object.keys(S.bs).filter(x=>x.toLowerCase().includes(q.toLowerCase())).sort((a,b)=>S.bs[b].t-S.bs[a].t).slice(0,4);return k.length?'<label>'+(q?'Passende Adressen':'Zuletzt verwendet')+'</label>'+k.map(x=>'<div class="row" data-k="'+esc(x)+'"><b>'+esc(x)+'</b><div class="mu">'+S.bs[x].w.slice(0,4).map(esc).join(', ')+'</div></div>').join(''):''};
+const clean=()=>conf('Adressen ohne Besuch seit 12 Monaten aus den Vorschlägen entfernen? Das Fahrtenbuch bleibt unverändert.',()=>{const l=Date.now()-365*864e5;Object.keys(S.bs).forEach(k=>{if(S.bs[k].t<l)delete S.bs[k]})});
+function bau(){const t=cur(),z=new Date().toISOString(),zw=lines(S.set.zwecke),L=t.st[t.st.length-1],bf=(L&&L.bf)||t.bf,ko=[...new Set(kol().concat(bf).concat(S.set.fahrer))].filter(x=>x&&x!==t.fahrer),
+o=v=>'<option></option>'+ko.map(x=>'<option'+(x===v?' selected':'')+'>'+esc(x)+'</option>').join('');
+D.innerHTML='<h3>Baustelle</h3><label>Adresse</label><input id="a" autocomplete="off" placeholder="Adresse eintippen oder Standort ermitteln"><button class="b s" style="padding:12px;margin:0 0 8px" onclick="loc(\'a\',this)">📍 Standort ermitteln</button><div id="ol2">'+pjl('')+bsl('')+'</div><label>Wohnung / Bezeichnung</label><input id="n" autocomplete="off" placeholder="z. B. Top 5"><div id="wc"></div><div class="g"><div><label>Beifahrer 1</label><select id="b0">'+o(bf[0])+'</select></div><div><label>Beifahrer 2</label><select id="b1">'+o(bf[1])+'</select></div></div><label>Zweck</label><select id="z"><option></option>'+zw.map(x=>'<option'+(x==='Baustelle'?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select><div id="e" style="display:none;color:#ffb4a8;margin:4px 0"></div><div class="g"><button class="b s" id="x">Abbrechen</button><button class="b" id="ok">Speichern</button></div>';
+D.showModal();let pid='';
+const sw=a=>{const w=(S.bs[a]||{w:[]}).w.slice(0,6);$('#wc').innerHTML=w.map(x=>'<button class="b s chip" data-w="'+esc(x)+'">'+esc(x)+'</button>').join('')};
+$('#a').oninput=e=>{$('#ol2').innerHTML=pjl(e.target.value)+bsl(e.target.value);pid='';sw(e.target.value.trim())};
+$('#ol2').onclick=e=>{const r=e.target.closest('.row');if(!r)return;if(r.dataset.p){const p=(Z().projects||[]).find(x=>String(x.id)===r.dataset.p);if(p){pid=p.id;$('#a').value=p.addr||p.name;$('#n').value=p.client||(p.addr?p.name:'');$('#ol2').innerHTML='';sw($('#a').value.trim())}return}const k=r.dataset.k;$('#a').value=k;$('#ol2').innerHTML='';sw(k)};
+$('#wc').onclick=e=>{if(e.target.dataset.w!==undefined)$('#n').value=e.target.dataset.w};
+$('#x').onclick=()=>D.close();
+addr().then(a=>{if(D.open&&!$('#a').value){$('#a').value=a;$('#a').dispatchEvent(new Event('input'))}}).catch(()=>{});
+$('#ok').onclick=()=>{const a=$('#a').value.trim(),n=$('#n').value.trim();if(!a&&!n){msg('Bitte Adresse oder Bezeichnung angeben');return}
+const b=[$('#b0').value,$('#b1').value];t.st.push({typ:'Baustelle',zeit:z,name:n,adr:a,zweck:$('#z').value,bf:b,pid:pid||undefined});t.bf=b;
+if(a){const e=S.bs[a]||(S.bs[a]={t:0,w:[]});e.t=Date.now();if(n)e.w=[n].concat(e.w.filter(x=>x!==n)).slice(0,12)}
+save();D.close();render()}}
+function mat(){D.innerHTML='<h3>Material holen</h3>'+lief().map((l,i)=>'<button class="b s" style="text-align:left" onclick="matv('+i+')"><b>'+esc(l.n)+'</b>'+(l.a?'<div class="mu">'+esc(l.a)+'</div>':'')+'</button>').join('')+'<button class="b" onclick="D.close();station(\'Material\')">Anderer Ort (GPS)</button><button class="b s" onclick="D.close();lbe()">✎ Liste bearbeiten</button><button class="b s" id="x">Abbrechen</button>';D.showModal();$('#x').onclick=()=>D.close()}
+async function matv(i){const l=lief()[i],t=cur(),s={typ:'Material',zeit:new Date().toISOString(),name:l.n,adr:l.a,zweck:'Material holen'};t.st.push(s);save();D.close();render();
+if(!l.a){try{const a=await addr();s.adr=a;S.set.lief=lines(S.set.lief).map((x,j)=>j===i?l.n+' | '+a:x).join('\n');save();if(tab==='heute')render()}catch(e){msg('Standort nicht verfügbar. Adresse später ergänzen.')}}}
+const pv=b=>{const p=S.priv.find(x=>!x.fertig);return b?(p?'<div class="card" style="border:1px solid var(--o)"><b>Privatfahrt unterwegs</b><div class="mu">seit '+tstr(new Date(p.ts))+' · '+esc(p.a1)+'</div><button class="b" onclick="priv('+p.id+')">Ankunft erfassen</button></div>':''):(p?'':'<button class="b s" onclick="pstart()">Privatfahrt starten</button>')};
+const privl=()=>{const l=S.priv.filter(p=>p.fertig&&(!mon||mk({st:[{zeit:p.ts}]})===mon)).sort((a,b)=>a.ts<b.ts?1:-1);return l.length?'<div class="sh">PRIVATFAHRTEN</div>'+l.map(p=>'<div class="card" onclick="priv('+p.id+')"><b>'+dstr(new Date(p.ts))+'</b><b style="float:right">'+p.km+' km</b><div class="mu">'+tstr(new Date(p.ts))+' '+esc(p.a1)+' → '+tstr(new Date(p.ts2))+' '+esc(p.a2)+'</div></div>').join(''):''};
+async function pstart(){const p={id:Date.now(),ts:new Date().toISOString(),a1:'',ts2:'',a2:'',km:'',fertig:false};S.priv.push(p);save();render();try{p.a1=await addr();save();if(tab==='heute')render()}catch(e){msg('Standort nicht verfügbar. Adresse später ergänzen.')}}
+function priv(id){const p=S.priv.find(x=>x.id===id),d1=new Date(p.ts),d2=p.ts2?new Date(p.ts2):new Date();
+D.innerHTML='<h3>Privatfahrt</h3><div class="g"><div><label>Datum</label><input id="pd" type="date" value="'+ld(d1)+'"></div><div><label>Kilometer</label><input id="pk" type="number" inputmode="numeric" value="'+(p.km||'')+'"></div></div><label>Start</label><div class="g" style="grid-template-columns:1fr 2fr;gap:6px"><input id="pt1" type="time" value="'+tstr(d1)+'"><input id="pa1" placeholder="Startadresse" value="'+esc(p.a1)+'"></div><button class="b s" style="padding:8px;margin:0 0 8px" onclick="loc(\'pa1\',this)">📍 Start-Standort</button><label>Ankunft</label><div class="g" style="grid-template-columns:1fr 2fr;gap:6px"><input id="pt2" type="time" value="'+tstr(d2)+'"><input id="pa2" placeholder="Zieladresse" value="'+esc(p.a2)+'"></div><button class="b s" style="padding:8px;margin:0 0 8px" onclick="loc(\'pa2\',this)">📍 Ziel-Standort</button><div id="e" style="display:none;color:#ffb4a8;margin:4px 0"></div><div class="g"><button class="b s" id="x">Abbrechen</button><button class="b" id="ok">Speichern</button></div><button class="b r" id="dl">'+(p.fertig?'Löschen':'Verwerfen')+'</button>';
+D.showModal();$('#x').onclick=()=>D.close();$('#dl').onclick=()=>conf('Privatfahrt löschen?',()=>{S.priv=S.priv.filter(x=>x.id!==id)});
+if(!p.fertig&&!p.a2)addr().then(a=>{if(D.open&&!$('#pa2').value)$('#pa2').value=a}).catch(()=>{});
+$('#ok').onclick=()=>{const k=pn($('#pk').value);if(!k){msg('Bitte Kilometer eingeben');return}if(!$('#pd').value){msg('Bitte Datum angeben');return}
+p.ts=mkts($('#pd').value,$('#pt1').value);p.ts2=mkts($('#pd').value,$('#pt2').value);p.a1=$('#pa1').value.trim();p.a2=$('#pa2').value.trim();p.km=k;p.fertig=true;save();D.close();render()}}
+const lrow=l=>'<div class="row"><div class="g" style="grid-template-columns:1fr auto;gap:6px"><input data-f="n" placeholder="Name" value="'+esc(l.n)+'"><button class="b s" style="width:auto;padding:8px 12px;margin:2px 0 8px" onclick="this.closest(\'.row\').remove()">✕</button></div><input data-f="a" placeholder="Adresse (leer = beim ersten Mal per GPS)" value="'+esc(l.a)+'"></div>';
+function lbe(){D.innerHTML='<h3>Lieferanten bearbeiten</h3><div id="lr">'+lief().map(lrow).join('')+'</div><button class="b s" id="la" style="padding:8px">+ Lieferant hinzufügen</button><div class="g"><button class="b s" id="x">Abbrechen</button><button class="b" id="ok">Speichern</button></div>';D.showModal();
+$('#x').onclick=()=>D.close();$('#la').onclick=()=>$('#lr').insertAdjacentHTML('beforeend',lrow({n:'',a:''}));
+$('#ok').onclick=()=>{S.set.lief=[...D.querySelectorAll('#lr .row')].map(r=>{const n=r.querySelector('[data-f=n]').value.trim(),a=r.querySelector('[data-f=a]').value.trim();return n?(a?n+' | '+a:n):''}).filter(Boolean).join('\n');save();D.close();mat()}}
+const crc=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return b=>{let c=-1;for(let i=0;i<b.length;i++)c=t[(c^b[i])&255]^(c>>>8);return(c^-1)>>>0}})();
+function zip(F){const E=new TextEncoder(),P=[],C=[],w=(n,l)=>{const a=[];for(let i=0;i<l;i++)a.push(n>>>(8*i)&255);return a};let o=0;
+F.forEach(([n,s])=>{const nb=E.encode(n),d=E.encode(s),c=crc(d),L=[80,75,3,4,...w(20,2),...w(0x800,2),...w(0,2),...w(0,2),...w(0x21,2),...w(c,4),...w(d.length,4),...w(d.length,4),...w(nb.length,2),...w(0,2),...nb];
+P.push(new Uint8Array(L),d);C.push(new Uint8Array([80,75,1,2,...w(20,2),...w(20,2),...w(0x800,2),...w(0,2),...w(0,2),...w(0x21,2),...w(c,4),...w(d.length,4),...w(d.length,4),...w(nb.length,2),...w(0,2),...w(0,2),...w(0,2),...w(0,2),...w(0,4),...w(o,4),...nb]));o+=L.length+d.length});
+const cs=C.reduce((a,x)=>a+x.length,0);return new Blob([...P,...C,new Uint8Array([80,75,5,6,0,0,0,0,...w(F.length,2),...w(F.length,2),...w(cs,4),...w(o,4),0,0])],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+function xlsx(R){const x=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])),H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',N='http://schemas.openxmlformats.org/',
+sh=H+'<worksheet xmlns="'+N+'spreadsheetml/2006/main"><cols><col min="1" max="15" width="16" customWidth="1"/></cols><sheetData>'+R.map((r,i)=>'<row r="'+(i+1)+'">'+r.map((c,j)=>{const f=String.fromCharCode(65+j)+(i+1);return c===''||c==null?'':typeof c==='number'?'<c r="'+f+'"><v>'+c+'</v></c>':'<c r="'+f+'" t="inlineStr"><is><t>'+x(c)+'</t></is></c>'}).join('')+'</row>').join('')+'</sheetData></worksheet>';
+return zip([['[Content_Types].xml',H+'<Types xmlns="'+N+'package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'],
+['_rels/.rels',H+'<Relationships xmlns="'+N+'package/2006/relationships"><Relationship Id="rId1" Type="'+N+'officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+['xl/workbook.xml',H+'<workbook xmlns="'+N+'spreadsheetml/2006/main" xmlns:r="'+N+'officeDocument/2006/relationships"><sheets><sheet name="Fahrtenbuch" sheetId="1" r:id="rId1"/></sheets></workbook>'],
+['xl/_rels/workbook.xml.rels',H+'<Relationships xmlns="'+N+'package/2006/relationships"><Relationship Id="rId1" Type="'+N+'officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>'],
+['xl/worksheets/sheet1.xml',sh]])}
+function pdf(R,title){const W=[48,28,28,130,130,38,38,36,30,32,38,70,48,40,40],X=[20],hd=['Datum','Ab','An','Von','Nach','km Ab','km An','betr.','privat','Tank l','Tank km','Zweck','Fahrer','Beif. 1','Beif. 2'];W.forEach(w=>X.push(X[X.length-1]+w));const XE=X[X.length-1],
+enc=s=>String(s==null?'':s).replace(/\u2192/g,'>').replace(/\u20ac/g,'\x80').replace(/[^\x20-\xff]/g,'?').replace(/([\\()])/g,'\\$1'),per=47,pg=[];for(let i=1;i<R.length;i+=per)pg.push(R.slice(i,i+per));if(!pg.length)pg.push([]);
+const cont=pg.map((rw,k)=>{let s='BT /F2 11 Tf 20 568 Td ('+enc(title+' - Seite '+(k+1)+'/'+pg.length)+') Tj ET\n0.4 w\n';
+const line=(r,y,f)=>{r.forEach((c,j)=>{s+='BT /F'+f+' 6.5 Tf '+(X[j]+2)+' '+y+' Td ('+enc(String(c==null?'':c).slice(0,Math.floor(W[j]/3.3)))+') Tj ET\n'});s+=X[0]+' '+(y-3)+' m '+XE+' '+(y-3)+' l S\n'};
+line(hd,548,2);rw.forEach((r,i)=>line(r,537-i*11,1));const yb=537-Math.max(rw.length,1)*11-3;X.forEach(x=>{s+=x+' 558 m '+x+' '+yb+' l S\n'});s+=X[0]+' 558 m '+XE+' 558 l S\n';return s});
+const O=['<</Type/Catalog/Pages 2 0 R>>','<</Type/Pages/Kids['+pg.map((_,k)=>(5+2*k)+' 0 R').join(' ')+']/Count '+pg.length+'>>','<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>','<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>'];
+pg.forEach((_,k)=>{O.push('<</Type/Page/Parent 2 0 R/MediaBox[0 0 842 595]/Resources<</Font<</F1 3 0 R/F2 4 0 R>>>>/Contents '+(6+2*k)+' 0 R>>');O.push('<</Length '+cont[k].length+'>>stream\n'+cont[k]+'endstream')});
+let out='%PDF-1.4\n';const off=[];O.forEach((o,i)=>{off.push(out.length);out+=(i+1)+' 0 obj\n'+o+'\nendobj\n'});
+const xr=out.length;out+='xref\n0 '+(O.length+1)+'\n0000000000 65535 f \n'+off.map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')+'trailer\n<</Size '+(O.length+1)+'/Root 1 0 R>>\nstartxref\n'+xr+'\n%%EOF';
+const b=new Uint8Array(out.length);for(let i=0;i<out.length;i++)b[i]=out.charCodeAt(i)&255;return new Blob([b],{type:'application/pdf'})}
+async function share(b,name){const f=new File([b],name,{type:b.type});if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:name});return}catch(e){if(e.name==='AbortError')return}}const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=name;a.click()}
+function expd(){D.innerHTML='<h3>Exportieren / Senden</h3><p class="mu">Zeitraum: '+(mon||'alle Monate')+' (Auswahl oben im Fahrtenbuch)</p><button class="b" onclick="ex(\'pdf\')">PDF</button><button class="b s" onclick="ex(\'xlsx\')">Excel (.xlsx)</button><button class="b s" onclick="ex(\'csv\')">CSV</button><button class="b s" id="x">Abbrechen</button>';D.showModal();$('#x').onclick=()=>D.close()}
+async function ex(f){D.close();const l=filt(),R=rows(l),n='Fahrtenbuch'+(mon?'_'+mon:'');
+if(f==='csv')await share(new Blob([csv(l)],{type:'text/csv'}),n+'.csv');else if(f==='xlsx')await share(xlsx(R),n+'.xlsx');else await share(pdf(R,'Fahrtenbuch Trendfloor'+(mon?' '+mon:'')),n+'.pdf')}
+const act=id=>{const t=S.tage.find(x=>x.id===id);D.innerHTML='<h3>'+dstr(new Date(t.st[0].zeit))+'</h3><div class="ac"><button onclick="D.close();edit('+id+')"><i style="border-radius:14px;border:3px solid var(--o)"><svg viewBox="0 0 24 24" width="26" height="26" fill="#fff"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></i>Bearbeiten</button><button class="dg" onclick="D.close();del('+id+')"><i><svg viewBox="0 0 24 24" width="26" height="26" fill="#1b1b1b"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></i>Löschen</button></div><button class="b s" id="x">Schließen</button>';D.showModal();$('#x').onclick=()=>D.close()};
+const rm=b=>{const r=b.closest('.row');r.dataset.rm=1;r.style.display='none'};
+function edit(id){const t=S.tage.find(x=>x.id===id),ko=[...new Set([t.fahrer,t.bf[0],t.bf[1],...kol()])].filter(Boolean),zw=lines(S.set.zwecke),o=v=>'<option></option>'+ko.map(x=>'<option'+(x===v?' selected':'')+'>'+esc(x)+'</option>').join(''),p=new Date(t.st[0].zeit);
+D.innerHTML='<h3>Tag bearbeiten</h3><div class="g"><div><label>Datum</label><input id="ed" type="date" value="'+p.getFullYear()+'-'+pad(p.getMonth()+1)+'-'+pad(p.getDate())+'"></div><div><label>Fahrer</label><select id="ef">'+o(t.fahrer)+'</select></div></div><div class="g"><div><label>Beifahrer 1</label><select id="eb0">'+o(t.bf[0])+'</select></div><div><label>Beifahrer 2</label><select id="eb1">'+o(t.bf[1])+'</select></div></div><div class="g"><div><label>km Start</label><input id="ek0" type="number" value="'+t.kmS+'"></div><div><label>km Ende</label><input id="ek1" type="number" value="'+t.kmE+'"></div></div>'+
+t.st.map((s,i)=>'<div class="row" data-i="'+i+'"><b>'+s.typ+'</b>'+(i?'<button class="b s" style="width:auto;padding:4px 10px;float:right;margin:0" onclick="rm(this)">Entfernen</button>':'')+'<div class="g"><input data-f="z" type="time" value="'+tstr(new Date(s.zeit))+'"><input data-f="name" placeholder="Name" value="'+esc(s.name)+'"></div><input data-f="adr" placeholder="Adresse" value="'+esc(s.adr)+'"><select data-f="zweck"><option></option>'+[...new Set([s.zweck,...zw])].filter(Boolean).map(x=>'<option'+(x===s.zweck?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></div>').join('')+
+'<div id="e" style="display:none;color:#ffb4a8;margin:4px 0"></div><div class="g"><button class="b s" id="x">Abbrechen</button><button class="b" id="ok">Speichern</button></div>';
+D.showModal();$('#x').onclick=()=>D.close();
+$('#ok').onclick=()=>{const ed=$('#ed').value;if(!ed){msg('Bitte Datum angeben');return}const [y,m,dd]=ed.split('-').map(Number),st=[];
+D.querySelectorAll('.row').forEach(r=>{if(r.dataset.rm)return;const g=f=>r.querySelector('[data-f="'+f+'"]').value,h=(g('z')||'00:00').split(':').map(Number);
+st.push({bf:t.st[+r.dataset.i].bf,typ:t.st[+r.dataset.i].typ,zeit:new Date(y,m-1,dd,h[0],h[1]).toISOString(),name:g('name').trim(),adr:g('adr').trim(),zweck:g('zweck')})});
+const k=i=>$(i).value===''?'':+$(i).value;
+t.st=st;t.fahrer=$('#ef').value;t.bf=[$('#eb0').value,$('#eb1').value];t.kmS=k('#ek0');t.kmE=k('#ek1');save();D.close();render()}}
+function buch(){const ms=[...new Set(S.tage.map(mk))].sort().reverse(),l=filt(),km=l.reduce((s,t)=>s+dk(t),0);
+return '<div class="card np"><select onchange="mon=this.value;render()"><option value="">Alle Monate</option>'+ms.map(m=>'<option'+(m===mon?' selected':'')+'>'+m+'</option>').join('')+'</select>'+
+'<button class="b" onclick="expd()">Exportieren / Senden</button></div><p class="mu">'+l.length+' Tage – '+km+' km</p>'+
+[...l].reverse().map(t=>'<div class="card"><b>'+dstr(new Date(t.st[0].zeit))+'</b> <span class="mu">'+esc(t.fahrer)+t.bf.filter(Boolean).map(x=>', '+esc(x)).join('')+'</span><button class="mb np" onclick="act('+t.id+')">⋮</button><b style="float:right;margin-right:8px">'+(dk(t)?dk(t)+' km':'')+'</b><div style="clear:both"></div><div onclick="act('+t.id+')">'+stl(t)+'</div><div class="mu">km '+(t.kmS||'–')+' → '+(t.kmE||'–')+(pk(t)?' · privat '+pk(t)+' km':'')+'</div></div>').join('')+privl()}
+const bk=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='fahrtenbuch-backup.json';a.click()};
+const rs=f=>{if(!f)return;const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);if(!j.tage)throw 0;S=j;S.orte=S.orte||{};S.aus=S.aus||[];S.bs=S.bs||{};S.priv=S.priv||[];save();render();msg('Backup geladen')}catch(e){msg('Ungültige Datei')}};r.readAsText(f)};
+function einst(){const s=S.set;return '<div class="card"><label>Standard-Fahrer</label><input value="'+esc(s.fahrer)+'" onchange="sv(\'fahrer\',this.value)">'+
+'<label>Zuhause (falls GPS fehlt)</label><input value="'+esc(s.home)+'" onchange="sv(\'home\',this.value)">'+
+'<label>Firma</label><input value="'+esc(s.firma)+'" onchange="sv(\'firma\',this.value)">'+
+(Z()?'<label>Kollegen</label><div class="mu" style="margin:2px 0 10px">Kommen aus der Zeiterfassung (Einstellungen › Arbeitskollegen): '+(kol().map(esc).join(', ')||'noch keine')+'</div>':'<label>Kollegen (einer pro Zeile)</label><textarea rows="5" onchange="sv(\'kollegen\',this.value)">'+esc(s.kollegen)+'</textarea>')+
+'<label>Zwecke (einer pro Zeile)</label><textarea rows="6" onchange="sv(\'zwecke\',this.value)">'+esc(s.zwecke)+'</textarea><label>Lieferanten (Name | Adresse, einer pro Zeile)</label><textarea rows="6" onchange="sv(\'lief\',this.value)">'+esc(s.lief)+'</textarea></div>'+
+'<div class="card"><button class="b s" onclick="clean()">Alte Baustellen-Adressen aufräumen</button><button class="b s" onclick="bk()">Backup speichern</button><label>Backup laden</label><input type="file" accept=".json" onchange="rs(this.files[0])"></div>'}
+const fm=(n,d)=>(+n).toFixed(d).replace('.',','),pn=v=>parseFloat(String(v).replace(',','.'))||0,ld=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),mkts=(d,t)=>{const a=d.split('-').map(Number),h=(t||'00:00').split(':').map(Number);return new Date(a[0],a[1]-1,a[2],h[0],h[1]).toISOString()};
+const conf=(h,fn)=>{D.innerHTML='<h3>'+h+'</h3><div class="g"><button class="b s" id="x">Abbrechen</button><button class="b r" id="ok">Löschen</button></div>';if(!D.open)D.showModal();$('#x').onclick=()=>D.close();$('#ok').onclick=()=>{fn();save();D.close();render()}};
+const btns=e=>'<div id="e" style="display:none;color:#ffb4a8;margin:4px 0"></div><div class="g"><button class="b s" id="x">Abbrechen</button><button class="b" id="ok">Speichern</button></div>'+(e.id?'<button class="b r" id="dl">Eintrag löschen</button>':'');
+const put=r=>{S.aus=S.aus.filter(x=>x.id!==r.id);S.aus.push(r);save();D.close();render()};
+const xr=x=>'<div class="g" style="grid-template-columns:2fr 1fr;gap:6px"><input data-f="b" placeholder="z. B. AdBlue" value="'+esc(x.b)+'"><input data-f="s" inputmode="decimal" placeholder="Betrag €" value="'+(x.s?fm(x.s,2):'')+'"></div>';
+const ed=id=>{const x=S.aus.find(y=>y.id===id);x.typ==='Tanken'?tank(id):term(x.typ,id)};
+function tank(id){const e=S.aus.find(x=>x.id===id)||{},p=e.ts?new Date(e.ts):new Date(),lk=[...S.tage].reverse().find(t=>t.kmE),sn=[...new Set(S.aus.map(x=>x.ort).filter(Boolean))];let o=[];
+D.innerHTML='<h3>Tanken</h3><div class="g"><div><label>Datum</label><input id="td" type="date" value="'+ld(p)+'"></div><div><label>Uhrzeit</label><input id="tt" type="time" value="'+tstr(p)+'"></div></div><label>Tankstelle</label><input id="to" list="sl" autocomplete="off" value="'+esc(e.ort)+'"><datalist id="sl">'+sn.map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist><label>Kilometerstand</label><input id="tk" type="number" inputmode="numeric" value="'+(e.km||(lk?lk.kmE:''))+'"><div class="g"><div><label>Liter</label><input id="tl" inputmode="decimal" value="'+(e.l?fm(e.l,2):'')+'"></div><div><label>Literpreis €</label><input id="tp" inputmode="decimal" value="'+(e.lp?fm(e.lp,3):'')+'"></div></div><label>Gesamtbetrag €</label><input id="tg" inputmode="decimal" value="'+(e.ges?fm(e.ges,2):'')+'"><div class="sh" style="margin:10px 0 4px">ZUSÄTZLICHE EINKÄUFE</div><div id="xs">'+(e.ex||[]).map(xr).join('')+'</div><button class="b s" id="xa" style="padding:6px">+ Einkauf hinzufügen</button><div class="mu" id="xt"></div>'+btns(e);
+D.showModal();$('#x').onclick=()=>D.close();if(e.id)$('#dl').onclick=()=>conf('Eintrag löschen?',()=>{S.aus=S.aus.filter(x=>x.id!==e.id)});
+$('#xa').onclick=()=>$('#xs').insertAdjacentHTML('beforeend',xr({}));
+D.oninput=()=>{const t=$('#xt');if(!t)return;const g=pn($('#tg').value),s=[...D.querySelectorAll('#xs .g')].reduce((a,r)=>a+pn(r.children[1].value),0);t.textContent=s?'Kraftstoff '+fm(g,2)+' € + Einkäufe '+fm(s,2)+' € = '+fm(g+s,2)+' €':''};D.oninput();
+['tl','tp','tg'].forEach(i=>$('#'+i).oninput=()=>{o=o.filter(x=>x!==i);o.push(i);if(o.length<2)return;const w=['tl','tp','tg'].find(x=>!o.slice(-2).includes(x)),l=pn($('#tl').value),q=pn($('#tp').value),g=pn($('#tg').value);
+if(w==='tg'&&l&&q)$('#tg').value=fm(l*q,2);else if(w==='tp'&&l&&g)$('#tp').value=fm(g/l,3);else if(w==='tl'&&q&&g)$('#tl').value=fm(g/q,2)});
+$('#ok').onclick=()=>{const l=pn($('#tl').value),q=pn($('#tp').value),g=pn($('#tg').value);if(!l||!(q||g)){msg('Bitte Liter und Literpreis oder Gesamtbetrag angeben');return}
+put({id:e.id||Date.now(),typ:'Tanken',ts:mkts($('#td').value||ld(new Date()),$('#tt').value),ort:$('#to').value.trim(),km:pn($('#tk').value)||'',l,lp:q||g/l,ges:g||l*q,ex:[...D.querySelectorAll('#xs .g')].map(r=>({b:r.children[0].value.trim(),s:pn(r.children[1].value)})).filter(y=>y.b||y.s)})}}
+function term(typ,id){const e=S.aus.find(x=>x.id===id)||{},p=e.ts?new Date(e.ts):new Date();
+D.innerHTML='<h3>'+typ+'</h3><div class="g"><div><label>Termin Datum</label><input id="td" type="date" value="'+ld(p)+'"></div><div><label>Uhrzeit</label><input id="tt" type="time" value="'+(e.ts&&(p.getHours()||p.getMinutes())?tstr(p):'')+'"></div></div><label>Ort / Werkstatt</label><input id="to" value="'+esc(e.ort)+'"><label>Notiz</label><textarea id="tn" rows="4">'+esc(e.notiz)+'</textarea><label><input id="tx" type="checkbox" style="width:auto"'+(e.x?' checked':'')+'> Erledigt</label>'+btns(e);
+D.showModal();$('#x').onclick=()=>D.close();if(e.id)$('#dl').onclick=()=>conf('Eintrag löschen?',()=>{S.aus=S.aus.filter(x=>x.id!==e.id)});
+$('#ok').onclick=()=>{if(!$('#td').value){msg('Bitte Datum angeben');return}put({id:e.id||Date.now(),typ,ts:mkts($('#td').value,$('#tt').value),ort:$('#to').value.trim(),notiz:$('#tn').value.trim(),x:$('#tx').checked})}}
+async function expT(){const R=[['Datum','Uhrzeit','Tankstelle','km-Stand','Liter','Literpreis EUR','Gesamtbetrag EUR','Zusätzliche Einkäufe','Summe Einkäufe EUR']];[...S.aus].filter(x=>x.typ==='Tanken').sort((a,b)=>a.ts<b.ts?-1:1).forEach(x=>{const d=new Date(x.ts);R.push([dstr(d),tstr(d),x.ort,x.km,fm(x.l,2),fm(x.lp,3),fm(x.ges,2),(x.ex||[]).map(y=>y.b+' '+fm(y.s,2)).join(', '),fm((x.ex||[]).reduce((a,y)=>a+y.s,0),2)])});
+const f=new File(['\ufeff'+R.map(r=>r.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(';')).join('\r\n')],'Tankliste.csv',{type:'text/csv'});
+if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'Tankliste'});return}catch(e){if(e.name==='AbortError')return}}
+const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;a.click()}
+function ausg(){const z=new Date();z.setHours(0,0,0,0);const A=[...S.aus].sort((a,b)=>a.ts<b.ts?1:-1),up=S.aus.filter(x=>x.typ!=='Tanken'&&!x.x&&x.ts>=z.toISOString()).sort((a,b)=>a.ts<b.ts?-1:1),
+vb=x=>{const v=S.aus.filter(y=>y.typ==='Tanken'&&y.km&&x.km&&y.km<x.km).sort((a,b)=>b.km-a.km)[0];return v?' · '+fm(x.l/(x.km-v.km)*100,1)+' l/100 km':''},
+row=x=>{const d=new Date(x.ts),h=d.getHours()||d.getMinutes();return '<div class="row" onclick="ed('+x.id+')"><b>'+dstr(d)+(h?' '+tstr(d):'')+' · '+x.typ+'</b>'+(x.typ==='Tanken'?'<b style="float:right">'+fm(x.ges,2)+' €</b><div class="mu">'+esc(x.ort)+' · '+fm(x.l,2)+' l · '+fm(x.lp,3)+' €/l'+(x.km?' · '+x.km+' km':'')+vb(x)+'</div>'+((x.ex||[]).length?'<div class="mu">+ '+x.ex.map(y=>esc(y.b)+(y.s?' '+fm(y.s,2)+' €':'')).join(', ')+'</div>':''):'<div class="mu">'+esc(x.ort)+(x.notiz?' · '+esc(x.notiz):'')+(x.x?' · erledigt':'')+'</div>')+'</div>'};
+return '<div class="sh">NEUE AUSGABE HINZUFÜGEN</div><div style="display:grid;grid-template-columns:repeat(3,1fr)"><button class="tl" onclick="tank()"><i>⛽</i>Tanken</button><button class="tl" onclick="term(\'Reifen\')"><i>🛞</i>Reifen</button><button class="tl" onclick="term(\'Werkstatt\')"><i>🔧</i>Werkstatt</button></div>'+(up.length?'<div class="sh">ANSTEHENDE TERMINE</div><div class="card">'+up.map(row).join('')+'</div>':'')+'<div class="sh">LETZTE AUSGABEN</div><div class="card">'+(A.length?A.slice(0,8).map(row).join(''):'<span class="mu">Noch keine Ausgaben angelegt.</span>')+'</div><button class="b s" onclick="expT()">Tankliste als CSV</button>'}
+function render(){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));$('#m').innerHTML={heute,aus:ausg,buch,set:einst}[tab]()}
+$('nav').onclick=e=>{if(e.target.dataset.t){tab=e.target.dataset.t;render();scrollTo(0,0)}};
+render();
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
+
+
+</script></body></html>
