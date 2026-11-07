@@ -1,4 +1,5 @@
 window.TFData=()=>Zeit.data();
+window.TFSave=()=>Zeit.save();
 const Fahrt=(()=>{let fr=null;
 const size=()=>{if(fr&&fr.isConnected)fr.style.height=Math.max(320,innerHeight-fr.getBoundingClientRect().top)+'px'};
 addEventListener('resize',size);
