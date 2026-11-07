@@ -194,14 +194,14 @@ if(e){const p=D.projects.find(x=>x.id===e.projectId);
 if(j===0){t[2]=p?wbText(p):'';t[3]=p?p.nr:'';t[4]=ft(Math.round(hrs(e)*60));t[5]=e.start+'  -  '+e.end;t[6]=wpr(e);if(ei===0||au(e)!==au(es[ei-1]))t[8]=au(e)}
 const sel=(e.wbt||[]).filter(x=>e.tasks.includes(x)),TL=sel.length?sel:e.tasks.slice(0,k),L=TL.slice();if(e.note){if(L.length)L[L.length-1]+=' - '+e.note;else L.push(e.note)}t[7]=j<k-1?(L[j]||''):L.slice(k-1).join(', ')}
 rows.push(t)}return rows})}
-function buildPdf(mo){const{jsPDF}=window.jspdf,d=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'}),th=dt(addD(mo,3)),C=WC,cen=WCEN,W=277,x0=10,data=wkData(mo),TOP=21,HH=7,LIM=199;let y=0;
+function buildPdf(mo){const{jsPDF}=window.jspdf,d=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'}),th=dt(addD(mo,3)),C=WC,cen=WCEN,W=277,x0=10,data=wkData(mo),TOP=26,HH=7,LIM=202;let y=0;
 const LV=[[8.5,3.6,2.6,6.4],[8,3.3,2.2,5.8],[7.5,3.1,2,5.3],[7,2.9,1.7,4.8],[6.5,2.7,1.5,4.4]];
 const lay=L=>{d.setFont('helvetica','normal');d.setFontSize(L[0]);let tot=0;const days=data.map(day=>{const rows=day.map(t=>{const Ls=t.map((v,k)=>d.splitTextToSize(String(v),C[k][1]-3));return{L:Ls,h:Math.max(L[3],Math.max(...Ls.map(a=>a.length))*L[1]+L[2])}});tot+=rows.reduce((a,r)=>a+r.h,0);return rows});return{days,tot}};
-let L=LV[LV.length-1],R=null;for(const l of LV){const r=lay(l);if(TOP+HH+r.tot<=LIM){L=l;R=r;break}}if(!R)R=lay(L);
+let L=LV[LV.length-1],R=null;for(const l of LV){const r=lay(l);if(TOP+HH+r.tot<=LIM){L=l;R=r;break}}if(!R)R=lay(L);const OFF=Math.max(0,(210-(TOP+HH+R.tot+6)-7)/2);
 const hdr=()=>{let x=x0;d.setFont('helvetica','bold');d.setFontSize(8.5);d.setLineWidth(.6);C.forEach(c=>{d.rect(x,y,c[1],HH,'S');d.text(c[0],x+c[1]/2,y+4.8,{align:'center'});x+=c[1]});y+=HH;d.setFont('helvetica','normal')};
-d.setFont('helvetica','bold');d.setFontSize(16);d.text('ARBEITSEINTEILUNG',148.5,11,{align:'center'});
-d.setFont('helvetica','normal');d.setFontSize(10);d.text('Name: '+D.set.name,x0,18);d.text('Kalenderwoche: '+kw(mo),85,18);d.text('Monat: '+MON[th.getMonth()],150,18);d.text('Jahr: '+th.getFullYear(),x0+W,18,{align:'right'});
-y=TOP;hdr();d.setFontSize(L[0]);d.setLineHeightFactor(L[1]/(L[0]*0.3528));
+d.setFont('helvetica','bold');d.setFontSize(16);d.text('ARBEITSEINTEILUNG',148.5,11+OFF,{align:'center'});
+d.setFont('helvetica','normal');d.setFontSize(10);d.text('Name: '+D.set.name,x0,20+OFF);d.text('Kalenderwoche: '+kw(mo),85,20+OFF);d.text('Monat: '+MON[th.getMonth()],150,20+OFF);d.text('Jahr: '+th.getFullYear(),x0+W,20+OFF,{align:'right'});
+y=TOP+OFF;hdr();d.setFontSize(L[0]);d.setLineHeightFactor(L[1]/(L[0]*0.3528));
 R.days.forEach(rows=>{const dh=rows.reduce((a,r)=>a+r.h,0);if(y+dh>LIM){d.addPage();y=12;hdr();d.setFontSize(L[0])}
 const top=y,by=(L[3]+L[0]*0.3528*0.72)/2;
 rows.forEach((Rw,r)=>{let x=x0;Rw.L.forEach((a,k)=>{const c=cen.includes(k);d.text(a,c?x+C[k][1]/2:x+1.5,y+by,{align:c?'center':'left'});x+=C[k][1]});
