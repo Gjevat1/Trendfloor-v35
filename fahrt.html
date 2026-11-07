@@ -29,7 +29,7 @@ dialog::backdrop{background:#000a}
 <dialog id="d"></dialog><div id="t" style="display:none;position:fixed;left:12px;right:12px;bottom:76px;background:#b3413a;color:#fff;padding:10px 12px;border-radius:10px;z-index:50"></div>
 <script>
 const K='tf_fahrt_v1',D=document.querySelector('#d'),$=s=>document.querySelector(s),pad=n=>String(n).padStart(2,'0');
-const Z=()=>{try{return parent!==window&&parent.Zeit?parent.Zeit.data():null}catch(e){return null}};
+const Z=()=>{try{return parent!==window&&parent.TFData?parent.TFData():null}catch(e){return null}};
 const kol=()=>{const z=Z();return z?[...(z.colleagues||[])]:lines(S.set.kollegen)};
 let S;try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
 if(!S){try{const o=localStorage.getItem('ftb1');if(o){S=JSON.parse(o);localStorage.setItem(K,o)}}catch(e){}}
