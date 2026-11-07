@@ -106,8 +106,11 @@ const css=document.createElement('style');css.textContent=`
 .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.sgrid label{margin:0;display:flex;flex-direction:column;gap:4px;font-size:.85rem}
 .lb{max-height:48vh;overflow:auto;background:#fff;border:1px solid #9aa5b1;border-radius:10px}.li{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #e3e7ec;background:#fff;padding:10px 12px;font:inherit;min-height:40px}.li:active{background:#dbeafe}
 .pv{border-collapse:collapse;table-layout:fixed;width:831px;font-size:13px}.pv th{border:2px solid #000;padding:4px 2px;background:#fff}.pv tbody{border:2px solid #000}.pv td{border-left:1px solid #000;border-right:1px solid #000;border-bottom:1px dotted #777;padding:2px 4px;height:30px;overflow:hidden;word-break:break-word}.pv tr:last-child td{border-bottom:0}.pv td:last-child{border-bottom:0}
+.zst{border-radius:12px;padding:12px 14px;font-weight:700;text-align:center;border:2px solid}.zst.o{background:#fff1e0;color:#9a4f0a;border-color:#f0a24b}.zst.b{background:#e3f0fd;color:#0659AA;border-color:#6fa8e6}.zst.g{background:#e5f4ea;color:#1b6b2e;border-color:#6cbf80}
+.ztr{display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:10px 12px;box-shadow:0 1px 4px rgba(0,0,0,.15)}.ztr b{font-size:1.35rem}
+.ztoast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);padding:12px 18px;border-radius:12px;font-weight:700;color:#fff;z-index:99999;box-shadow:0 4px 14px rgba(0,0,0,.35);max-width:88%;text-align:center;transition:opacity .4s}
 `;document.head.appendChild(css);
-const stepper=(k,l)=>`<div class="zs"><small>${l}</small><button class="zb" data-a="up" data-k="${k}">▲</button><b>${k==='pause'?S.e.pause+' min':S.e[k]}</b><button class="zb" data-a="dn" data-k="${k}">▼</button>${k==='pause'?'':`<button class="zb g" data-a="now" data-k="${k}">Jetzt</button>`}</div>`;
+const stepper=(k,l)=>`<div class="zs"><small>${l}</small><button class="zb" data-a="up" data-k="${k}">▲</button><b>${k==='pause'?S.e.pause+' min':S.e[k]}</b><button class="zb" data-a="dn" data-k="${k}">▼</button></div>`;
 const chips=(list,sel,k)=>`<div class="chips">${list.map(v=>`<button class="chip ${sel.includes(v)?'on':''}" data-a="tog" data-k="${k}" data-v="${esc(v)}">${esc(v)}</button>`).join('')}<button class="chip add" data-a="addlist" data-k="${k}">+ neu</button></div>`;
 const TIT={material:'Material wählen',tasks:'Tätigkeiten wählen',colleagues:'Arbeitskollegen wählen'};
 function picker(k,txt){const sel=S.e[k],mat=k==='material',pr=mat&&typeof Mat!=='undefined'&&S.e.projectId?Mat.rows(S.e.projectId):[],pend=mat?sel.map((v,i)=>({v,i})).filter(x=>!x.v.sync):[],cnt=mat?pr.length+pend.length:sel.length,show=S.show&&S.show[k],btn=mat?cnt+' Pos.':cnt+' gewählt';
@@ -122,7 +125,7 @@ return`<div class="zrow"><button class="zb" style="flex:1" data-a="pick" data-k=
 function meModal(){const r=(typeof Mat!=='undefined'&&Mat.rows(S.e.projectId)[S.me.i])||{};return`<div class="mo"><div class="mb"><b>${esc(r.n||'')}</b><div class="zrow mqr"><input id="me-q" inputmode="decimal" placeholder="Menge" value="${esc(S.me.q)}"><select id="me-u">${D.units.map(u=>`<option ${u===S.me.u?'selected':''}>${esc(u)}</option>`).join('')}</select></div><div class="zrow"><button class="zb l" style="flex:1" data-a="mr-x">Abbrechen</button><button class="zb g" style="flex:1" data-a="mr-ok">Übernehmen</button></div></div></div>`}
 function matModal(){const sel=S.e.material,q=(S.pick.q||'').toLowerCase();
 return`<div class="mo"><div class="mb"><b>Material wählen</b><input id="pk-q" placeholder="🔍 Suchen" value="${esc(S.pick.q||'')}"><div class="ml">${D.materials.filter(v=>v.toLowerCase().includes(q)).map(v=>{const i=sel.findIndex(m=>m.name===v),on=i>=0;return`<button class="mr ${on?'on':''}" data-a="mtog" data-v="${esc(v)}">${on?'☑':'☐'} ${esc(v)}</button>`+(on?`<div class="zrow mqr"><input id="mq-${i}" inputmode="decimal" placeholder="Menge" value="${esc(sel[i].qty)}"><select id="mu-${i}">${D.units.map(u=>`<option ${u===sel[i].unit?'selected':''}>${esc(u)}</option>`).join('')}</select></div>`:'')}).join('')||'<div class="zcard">Noch keine Einträge – mit „+ neu“ anlegen.</div>'}</div><div class="zrow"><button class="zb" style="flex:1" data-a="addlist" data-k="materials">+ neu</button><button class="zb g" style="flex:2;height:48px" data-a="fin">Fertig (${sel.length})</button></div></div></div>`}
-function modal(){if(S.me)return meModal();if(S.pick&&S.pick.k==='material'&&!S.pm)return matModal();if(S.pm)return'<div class="mo"><div class="mb">'+pform(S.p)+'</div></div>';if(!S.pick)return'';const k=S.pick.k,q=(S.pick.q||'').toLowerCase(),sel=S.e[k];
+function modal(){if(S.tm)return tmModal();if(S.me)return meModal();if(S.pick&&S.pick.k==='material'&&!S.pm)return matModal();if(S.pm)return'<div class="mo"><div class="mb">'+pform(S.p)+'</div></div>';if(!S.pick)return'';const k=S.pick.k,q=(S.pick.q||'').toLowerCase(),sel=S.e[k];
 return`<div class="mo"><div class="mb"><b>${TIT[k]}</b><input id="pk-q" placeholder="🔍 Suchen" value="${esc(S.pick.q||'')}"><div class="ml">${D[k].filter(v=>v.toLowerCase().includes(q)).map(v=>`<button class="mr ${sel.includes(v)?'on':''}" data-a="tog" data-k="${k}" data-v="${esc(v)}">${sel.includes(v)?'☑':'☐'} ${esc(v)}</button>`).join('')||'<div class="zcard">Noch keine Einträge – mit „+ neu“ anlegen.</div>'}</div><div class="zrow"><button class="zb" style="flex:1" data-a="addlist" data-k="${k}">+ neu</button><button class="zb g" style="flex:2;height:48px" data-a="fin">Fertig (${sel.length})</button></div></div></div>`}
 function rMenu(){return`<div class="zmenu">
 <button class="zt" data-a="go" data-v="write"><span>⏱</span>Stunden schreiben</button>
@@ -131,19 +134,20 @@ function rMenu(){return`<div class="zmenu">
 <button class="zt" data-a="go" data-v="week"><span>📄</span>Wochenbericht</button>
 <button class="zt" data-a="go" data-v="stat"><span>📊</span>Auswertung</button>
 <button class="zt w" data-a="go" data-v="plc"><span>⚙</span>Einstellungen</button></div>`}
-function rWrite(){const e=S.e,ps=D.projects.filter(p=>!p.done||p.id===e.projectId);
+function rWrite(){const e=S.e,st=stLine(e),ps=D.projects.filter(p=>!p.done||p.id===e.projectId);
 return`<div class="zc">
 <div class="zrow"><button class="zb" data-a="dprev">◀</button><div class="dtbox"><span>${fdl(e.date)}</span><input type="date" id="f-date" value="${e.date}"></div><button class="zb" data-a="dnext">▶</button></div>
+<div class="zst ${st[0]}">${st[1]}</div>
 <label>Projekt</label><div class="zrow"><select id="f-proj"><option value="">– kein Projekt –</option>${ps.map(p=>`<option value="${p.id}" ${p.id===e.projectId?'selected':''}>${esc(pname(p.id))}</option>`).join('')}</select><button class="zb" data-a="newproj">+</button></div>
 ${isAbs(e.projectId)?`<div class="zsum">${esc(pname(e.projectId))}: ${fh(hrs(e))} (Sollstunden, automatisch)</div>`:`${D.set.hasCar?'':`<label>Auto (Kennzeichen)</label><div class="zrow"><select id="f-car"><option value="">– kein Auto –</option>${(D.cars.includes(e.auto)||!e.auto?D.cars:D.cars.concat(e.auto)).map(c=>`<option ${c===e.auto?'selected':''}>${esc(c)}</option>`).join('')}</select><button class="zb" data-a="newcar">+</button></div>`}
-<div class="zrow"><label style="flex:1">Zeit</label><button class="zb g" data-a="std">Standard</button></div><div class="ztime">${stepper('start','Von')}${stepper('end','Bis')}${stepper('pause','Pause')}</div>
-<div class="zsum">Arbeitszeit: ${fh(hrs(e))}</div>
+<div class="zrow"><label style="flex:1">Zeit</label><button class="zb g" data-a="std">Standard</button></div><div class="ztr"><div style="flex:1"><b>${e.run?e.start+' – läuft':e.start+' – '+e.end}</b><br><small>${e.run?'Arbeitszeit wird bei „Ende“ berechnet':'Pause '+e.pause+' min · Arbeitszeit '+fh(hrs(e))}</small></div><button class="zb" data-a="tedit">✎ Ändern</button></div>
+<div class="zrow"><button class="zb ${e.run?'l':'g'}" style="flex:1;height:48px" data-a="tstart">▶ Start</button><button class="zb ${e.run?'r':'l'}" style="flex:1;height:48px" data-a="tend">■ Ende</button></div>
 <label>Tätigkeiten</label>${picker('tasks','Tätigkeiten wählen')}
 <label>Arbeitskollegen</label>${picker('colleagues','Kollegen wählen')}
 <label>Material</label>${picker('material','Material wählen')}
 `}
 <label>Notiz</label><textarea id="f-note" rows="3">${esc(e.note)}</textarea>
-<button class="zb g" style="height:52px" data-a="save">💾 Speichern</button>
+<button class="zb ${st[0]==='g'?'l':'g'}" style="height:52px" data-a="save">${st[0]==='g'?'✔ Gespeichert':'💾 Speichern'}</button>
 ${e.id?'<button class="zb r" style="height:48px" data-a="del" data-i="'+e.id+'">🗑 Löschen</button>':''}</div>${modal()}`}
 function rOver(){const t=iso(new Date()),c=S.cur,sel=S.sel;let h='<div class="zc">';
 h+=`<div class="seg"><button class="zb ${S.mode==='month'?'':'l'}" data-a="mode" data-v="month">Monat</button><button class="zb ${S.mode==='week'?'':'l'}" data-a="mode" data-v="week">Woche</button></div>`;
@@ -219,10 +223,10 @@ if(!send){d.save(f.name);S.wnote='PDF gespeichert: '+f.name;return render()}
 const file=new File([d.output('blob')],f.name,{type:'application/pdf'});
 if(navigator.canShare&&navigator.canShare({files:[file]})){if(T.length&&navigator.clipboard)navigator.clipboard.writeText(T.join(', ')).catch(()=>{});S.wnote=T.length?(T.length>1?'E-Mail-Adressen':'E-Mail-Adresse')+' kopiert – im Feld „An“ einfügen.':'';navigator.share({files:[file],title:f.subj,text:f.body}).catch(()=>{});render()}
 else{d.save(f.name);S.wnote='PDF gespeichert. Mail-Programm öffnet sich – PDF bitte anhängen.';render();location.href='mailto:'+T.map(encodeURIComponent).join(',')+'?'+(D.set.own?'cc='+encodeURIComponent(D.set.own)+'&':'')+'subject='+encodeURIComponent(f.subj)+'&body='+encodeURIComponent(f.body)}}
-const SV={std:['Standardzeiten','⏰'],tasks:['Tätigkeiten','🔨'],materials:['Material','🧰'],colleagues:['Arbeitskollegen','👥'],units:['Einheiten','📏'],cars:['Kennzeichen','🚗'],me:['Name & E-Mail','✉']};
+const SV={std:['Standardzeiten','⏰'],tasks:['Tätigkeiten','🔨'],materials:['Material','🧰'],colleagues:['Arbeitskollegen','👥'],units:['Einheiten','📏'],cars:['Kennzeichen','🚗'],me:['Name & E-Mail','✉'],fb:['Rückmeldung','🔔']};
 const mailList=()=>String(D.set.mail||'').split(/[\s,;]+/).filter(Boolean),EM=/^\S+@\S+\.\S+$/;
-const svInfo=k=>k==='std'?D.std.md.start+'–'+D.std.md.end:k==='cars'&&D.set.hasCar?(D.set.car||'eigenes Auto'):k==='me'?(D.set.name||''):String(D[k].length);
-function rPlc(){if(S.sv==='std')return rStd();if(S.sv==='me')return rMe();if(S.sv)return rList(S.sv);
+const svInfo=k=>k==='std'?D.std.md.start+'–'+D.std.md.end:k==='cars'&&D.set.hasCar?(D.set.car||'eigenes Auto'):k==='me'?(D.set.name||''):k==='fb'?(D.vib!==0?'Vibration an':'Vibration aus')+(D.snd?' · Ton an':''):String(D[k].length);
+function rPlc(){if(S.sv==='std')return rStd();if(S.sv==='me')return rMe();if(S.sv==='fb')return rFb();if(S.sv)return rList(S.sv);
 return'<div class="zc">'+Object.keys(SV).map(k=>`<button class="zh" data-a="sv" data-v="${k}"><span class="zi">${SV[k][1]}</span><span class="zn">${SV[k][0]}</span><small>${esc(svInfo(k))}</small><span>›</span></button>`).join('')+'</div>'}
 function stdBlock(k,label){const x=D.std[k],h=Math.max(0,tm(x.end)-tm(x.start)-(x.pf&&x.pt?tm(x.pt)-tm(x.pf):0))/60;
 return`<div class="zcard"><b>${label}</b><div class="sgrid"><label>Beginn<input type="time" id="sd-${k}-start" value="${x.start}"></label><label>Ende<input type="time" id="sd-${k}-end" value="${x.end}"></label><label>Pause von<input type="time" id="sd-${k}-pf" value="${x.pf}"></label><label>Pause bis<input type="time" id="sd-${k}-pt" value="${x.pt}"></label></div>
@@ -247,7 +251,19 @@ ${k==='units'?'<small>Die oberste Einheit ist die Vorauswahl bei neuem Material.
 const T={week:'Wochenbericht',menu:'Zeiterfassung',write:'Stunden schreiben',over:'Übersicht',proj:'Projekte',stat:'Auswertung',plc:'Einstellungen'};
 function render(){titleEl.textContent=view==='plc'&&S.sv?SV[S.sv][0]:T[view];root.innerHTML={menu:rMenu,write:rWrite,over:rOver,proj:rProj,week:rWeek,stat:rStat,plc:rPlc}[view]();window.scrollTo(0,0)}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&view==='write'&&S.e&&S.opened&&S.opened!==iso(new Date())){S.e=newEntry();reloadDay();S.opened=iso(new Date());render()}});
-function go(v){view=v;if(v==='stat')S.f=S.f||statDef();if(v==='plc'){S.sv=null;S.lq='';S.ln=''}if(v==='week')S.wk=S.wk||monday(iso(new Date()));S.pick=null;S.pm=false;S.ret=null;S.prev=false;S.le=null;S.rc=null;if(v==='write'&&!S.e){S.e=newEntry();reloadDay()}if(v==='write'){S.opened=iso(new Date());migrateMat()}if(v==='over'){S.mode=S.mode||'month';S.sel=S.sel||iso(new Date());S.cur=S.sel}if(v==='proj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.q=''}render()}
+function go(v){view=v;if(v==='stat')S.f=S.f||statDef();if(v==='plc'){S.sv=null;S.lq='';S.ln=''}if(v==='week')S.wk=S.wk||monday(iso(new Date()));S.pick=null;S.pm=false;S.ret=null;S.prev=false;S.le=null;S.rc=null;S.tm=false;S.ended=0;S.snapId=null;if(v==='write'&&!S.e){S.e=newEntry();reloadDay()}if(v==='write')restoreRun();if(v==='write'){S.opened=iso(new Date());migrateMat()}if(v==='over'){S.mode=S.mode||'month';S.sel=S.sel||iso(new Date());S.cur=S.sel}if(v==='proj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.q=''}render()}
+const nowM=()=>{const n=new Date();return Math.min(1439,Math.round((n.getHours()*60+n.getMinutes())/D.step)*D.step)};
+function fb(msg,kind,col){try{if(D.vib!==0&&navigator.vibrate)navigator.vibrate(kind===2?[70,80,70]:60)}catch(x){}
+if(D.snd){try{const A=window.AudioContext||window.webkitAudioContext,c=new A(),o=c.createOscillator(),g=c.createGain();o.frequency.value=kind===2?660:880;g.gain.value=.08;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+(kind===2?.25:.15));setTimeout(()=>c.close(),600)}catch(x){}}
+if(!msg)return;const t=document.createElement('div');t.className='ztoast';t.style.background=col||'#2e8b3e';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>{t.style.opacity='0'},2200);setTimeout(()=>t.remove(),2700)}
+function stLine(e){if(e.id&&S.snapId!==e.id){S.snap=JSON.stringify(e);S.snapId=e.id}
+if(e.run)return['b','▶ Läuft seit '+e.start];
+if(e.id&&JSON.stringify(e)===S.snap)return['g','✔ Gespeichert · '+e.start+'–'+e.end+' · '+fh(hrs(e))];
+if(S.ended)return['o','■ Beendet '+e.end+' · noch nicht gespeichert'];
+return['o','● Noch nicht gespeichert']}
+function restoreRun(){if(!D.run)return;if(D.run.date!==iso(new Date())){D.run=null;save();return}if(S.e&&!S.e.id&&S.e.date===D.run.date){S.e.start=D.run.start;S.e.run=1}}
+function tmModal(){const e=S.e;return`<div class="mo"><div class="mb"><b>Zeit ändern</b><div class="ztime">${stepper('start','Von')}${stepper('end','Bis')}${stepper('pause','Pause')}</div><div class="chips">${[0,30,45,60].map(v=>`<button class="chip ${+e.pause===v?'on':''}" data-a="pset" data-v="${v}">Pause ${v}</button>`).join('')}</div><div class="zsum">Arbeitszeit: ${fh(hrs(e))}</div><button class="zb g" style="height:48px" data-a="tok">Fertig</button></div></div>`}
+function rFb(){return`<div class="zc"><div class="zcard"><b>Rückmeldung</b><br><small>Kurze Rückmeldung beim Speichern, Start und Ende.</small><div class="zrow" style="margin-top:10px"><button class="zb ${D.vib!==0?'g':'l'}" style="flex:1" data-a="fbt" data-k="vib">📳 Vibration: ${D.vib!==0?'An':'Aus'}</button><button class="zb ${D.snd?'g':'l'}" style="flex:1" data-a="fbt" data-k="snd">🔔 Ton: ${D.snd?'An':'Aus'}</button></div><button class="zb l" style="width:100%;margin-top:10px" data-a="fbtest">Testen</button></div></div>`}
 function adj(k,d){const e=S.e,s=D.step;if(k==='pause'){e.pause=Math.max(0,+e.pause+d*s);e.pm=1}else{e[k]=ft(Math.min(1439,Math.max(0,tm(e[k])+d*s)));if(!e.pm)e.pause=pFit(e)}}
 function act(a,b,el){const e=S.e;
 if(a==='go')return go(b.v);
@@ -297,8 +313,15 @@ if(a==='madd'){const n=document.getElementById('m-sel').value;if(!n)return;e.mat
 if(a==='mdel'){e.material.splice(+b.i,1);return render()}
 if(a==='newproj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.pm=true;return render()}
 if(a==='newcar'){const v=(prompt('Kennzeichen (z. B. VL 123 AB):')||'').trim().toUpperCase();if(!v)return;if(!D.cars.includes(v))D.cars.push(v);e.auto=v;save();return render()}
-if(a==='std'){Object.assign(e,stdFor(e.date));e.pm=0;return render()}
-if(a==='save'){if(D.set.hasCar&&D.set.car&&!e.auto)e.auto=D.set.car;D.lastCar=e.auto||D.lastCar;if(!e.tasks.length&&!isAbs(e.projectId))return alert('Bitte mindestens eine Tätigkeit wählen (nur bei Urlaub und Krankenstand nicht nötig).');if(tm(e.end)<=tm(e.start))return alert('„Bis“ muss nach „Von“ liegen.');flushMat();if(!isAbs(e.projectId))D.lastProj=e.projectId;if(!e.id){e.id=Date.now();D.entries.push(e)}else D.entries=D.entries.map(x=>x.id===e.id?e:x);save();S.sel=e.date;S.e=null;go('over');return}
+if(a==='std'){Object.assign(e,stdFor(e.date));e.pm=0;e.run=0;D.run=null;S.ended=0;return render()}
+if(a==='tedit'){S.tm=true;return render()}
+if(a==='tok'){S.tm=false;return render()}
+if(a==='pset'){e.pause=+b.v;e.pm=1;return render()}
+if(a==='tstart'){if(e.run){fb('Läuft schon seit '+e.start,1,'#0659AA');return}e.start=ft(nowM());e.run=1;S.ended=0;if(!e.pm)e.pause=pFit(e);D.run={date:e.date,start:e.start};save();fb('▶ Gestartet '+e.start,2,'#0659AA');return render()}
+if(a==='tend'){const m=nowM();if(m<=tm(e.start)){alert('„Ende“ liegt nicht nach „Start“. Bitte die Zeit mit „Ändern“ einstellen.');return}e.end=ft(m);e.run=0;D.run=null;S.ended=1;if(!e.pm)e.pause=pFit(e);save();fb('■ Beendet '+e.end+' · '+fh(hrs(e))+' – jetzt speichern',2,'#e06f1f');return render()}
+if(a==='fbt'){if(b.k==='vib')D.vib=D.vib===0?1:0;else D.snd=D.snd?0:1;save();return render()}
+if(a==='fbtest'){fb('✔ So fühlt sich die Rückmeldung an',1);return}
+if(a==='save'){if(e.run)return alert('Die Zeit läuft noch. Bitte zuerst „■ Ende“ drücken.');if(D.set.hasCar&&D.set.car&&!e.auto)e.auto=D.set.car;D.lastCar=e.auto||D.lastCar;if(!e.tasks.length&&!isAbs(e.projectId))return alert('Bitte mindestens eine Tätigkeit wählen (nur bei Urlaub und Krankenstand nicht nötig).');if(tm(e.end)<=tm(e.start))return alert('„Bis“ muss nach „Von“ liegen.');flushMat();delete e.run;if(D.run&&D.run.date===e.date)D.run=null;if(!isAbs(e.projectId))D.lastProj=e.projectId;if(!e.id){e.id=Date.now();D.entries.push(e)}else D.entries=D.entries.map(x=>x.id===e.id?e:x);save();S.sel=e.date;S.e=null;fb('✔ Gespeichert · '+(pname(e.projectId)||'ohne Projekt')+' · '+e.start+'–'+e.end+' · '+fh(hrs(e)),1);go('over');return}
 if(a==='edit'){S.e=JSON.parse(JSON.stringify(D.entries.find(x=>x.id==b.i)));return go('write')}
 if(a==='del'){if(!confirm('Eintrag wirklich löschen?'))return;D.entries=D.entries.filter(x=>x.id!=b.i);save();S.e=null;return go('over')}
 if(a==='newfor'){S.e=newEntry(S.sel);return go('write')}
@@ -341,4 +364,4 @@ save();['pf','pt'].forEach(g=>q('sd-'+k+'-'+g).value=x[g]);q('sdsum-'+k).textCon
 else if(i==='pk-q'){S.pick.q=v;render();const q=document.getElementById('pk-q');q.focus();q.setSelectionRange(v.length,v.length)}
 else if(i==='p-q'){S.q=v;const pos=v.length;render();const q=document.getElementById('p-q');q.focus();q.setSelectionRange(pos,pos)}}
 return{open(r,t){fixPause();root=r;titleEl=t;if(!r._z){r._z=1;r.addEventListener('click',ev=>{const b=ev.target.closest('[data-a]');if(b)act(b.dataset.a,b.dataset,b)});r.addEventListener('input',onIn);r.addEventListener('change',onIn);r.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.id==='l-new'){ev.preventDefault();act('ladd',{},ev.target)}if(ev.key==='Enter'&&ev.target.id==='m-new'){ev.preventDefault();act('madd',{},ev.target)}if(ev.key==='Enter'&&ev.target.id==='l-edit'){ev.preventDefault();act('lsave',{},ev.target)}})}view='menu';S={};render()},
-_fix:()=>fixPause(),_pdf:()=>{S.wk=S.wk||monday(iso(new Date()));return buildPdf(S.wk)},_wk:w=>{S.wk=monday(w)},data(){return D},back(){if(S.rc){S.rc=null;render();return true}if(S.le!=null){S.le=null;render();return true}if(S.prev){S.prev=false;render();return true}if(S.pm){S.pm=false;render();return true}if(S.ret){S.ret=null;render();return true}if(S.pick){S.pick=null;render();return true}if(view==='plc'&&S.sv){S.sv=null;render();return true}if(view==='menu')return false;if(view==='write'&&S.e&&S.e.id){S.e=null;go('over')}else{S.e=null;go('menu')}return true}}})();
+_fix:()=>fixPause(),_pdf:()=>{S.wk=S.wk||monday(iso(new Date()));return buildPdf(S.wk)},_wk:w=>{S.wk=monday(w)},data(){return D},back(){if(S.tm){S.tm=false;render();return true}if(S.rc){S.rc=null;render();return true}if(S.le!=null){S.le=null;render();return true}if(S.prev){S.prev=false;render();return true}if(S.pm){S.pm=false;render();return true}if(S.ret){S.ret=null;render();return true}if(S.pick){S.pick=null;render();return true}if(view==='plc'&&S.sv){S.sv=null;render();return true}if(view==='menu')return false;if(view==='write'&&S.e&&S.e.id){S.e=null;go('over')}else{S.e=null;go('menu')}return true}}})();
