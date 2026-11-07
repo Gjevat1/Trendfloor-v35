@@ -5,6 +5,7 @@ tasks:['Altbelag entfernen','Untergrund vorbereiten','Spachteln','Schleifen','Gr
 colleagues:[],materials:['Schleifpapier','Lack','Grundierung','Spachtelmasse','Vinylboden','Parkett','Laminat','Sockelleisten','Kleber']};
 let D=load(),view='menu',root,titleEl,S={};
 function load(){let d=JSON.parse(JSON.stringify(DEF));try{Object.assign(d,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){}[['Urlaub',900001,'urlaub'],['Krankenstand',900002,'krank'],['Feiertag',900003,'feiertag']].forEach(a=>{if(!d.projects.some(p=>p.id===a[1]))d.projects.push({id:a[1],name:a[0],nr:'',client:'',addr:'',tel:'',wb:{name:1,client:0,addr:0,tel:0},kind:a[2]})});return d}
+function fixPause(){let ch=false;D.entries.forEach(e=>{if(e.pm||!e.start||!e.end||!(+e.pause>0))return;const x=dt(e.date).getDay()===5?D.std.fr:D.std.md;if(x.pf&&x.pt&&+e.pause===tm(x.pt)-tm(x.pf)&&pFit(e)===0){e.pause=0;ch=true}});if(ch)save()}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){alert('Speichern nicht möglich!')}}
 const p2=n=>String(n).padStart(2,'0'),esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 const iso=d=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
@@ -20,6 +21,7 @@ const monday=s=>addD(s,-((dt(s).getDay()+6)%7));
 const on=s=>D.entries.filter(e=>e.date===s).sort((a,b)=>a.start.localeCompare(b.start));
 const pname=id=>{const p=D.projects.find(x=>x.id===id);return p?(p.nr?p.nr+' · ':'')+(p.name||p.addr||''):''};
 const stdFor=d=>{const x=dt(d).getDay()===5?D.std.fr:D.std.md;return{start:x.start,end:x.end,pause:x.pf&&x.pt?tm(x.pt)-tm(x.pf):0}};
+const pFit=e=>{const x=dt(e.date).getDay()===5?D.std.fr:D.std.md;if(!(x.pf&&x.pt))return 0;return Math.max(0,Math.min(tm(x.pt),tm(e.end))-Math.max(tm(x.pf),tm(e.start)))};
 const isAbs=id=>{const p=D.projects.find(x=>x.id===id);return !!(p&&p.kind)};
 function reloadDay(nav){let e=S.e;if(!e)return false;let ch=false;
 const x=e.projectId?D.entries.find(q=>q.date===e.date&&q.projectId===e.projectId&&q.id!==e.id):null;
@@ -161,7 +163,7 @@ function pform(p){return`<div class="zc" style="gap:8px;padding-top:0"><b>${p.id
 <input id="p-ad" placeholder="Adresse (Straße, PLZ Ort)" value="${esc(p.addr||'')}">
 <input id="p-tel" inputmode="tel" placeholder="Telefon (Kunde)" value="${esc(p.tel||'')}">
 <b style="font-size:.9rem">Im Wochenbericht anzeigen:</b><div class="zrow" style="flex-wrap:wrap;gap:6px">${[['name','Projektname'],['client','Kunde'],['addr','Adresse'],['tel','Telefon']].map(([k,t])=>`<label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="wb-${k}" style="width:22px;height:22px" ${Object.assign({name:1,client:1,addr:1,tel:0},p.wb||{})[k]?'checked':''}>${t}</label>`).join('')}</div>
-${!p.id&&typeof Todo!=='undefined'&&Todo.enabled()?'<b style="font-size:.9rem">Arbeitsschritte für die To-do-Liste:</b>'+Todo.groups().map(g=>'<div style="font-weight:700;margin-top:6px">'+esc(g.cat)+'</div>'+g.items.map(t=>'<label style="display:flex;align-items:center;gap:8px;margin:2px 0"><input type="checkbox" id="ps-'+t.id+'" style="width:22px;height:22px" '+((p.steps||[]).includes(t.id)?'checked':'')+'>'+esc(t.name)+'</label>').join('')).join(''):''}
+${!p.id&&typeof Todo!=='undefined'&&Todo.enabled()?'<b style="font-size:.9rem">Arbeitsschritte für die To-do-Liste:</b>'+Todo.groups().map(g=>{const n=g.items.filter(t=>(p.steps||[]).includes(t.id)).length,op=(p.open||{})[g.cat];return'<button class="zb '+(n?'g':'l')+'" style="width:100%;margin-top:6px;height:46px;display:flex;justify-content:space-between;align-items:center;padding:0 14px" data-a="pgrp" data-c="'+esc(g.cat)+'"><span>'+(op?'▾ ':'▸ ')+esc(g.cat)+'</span><span style="font-weight:400">'+(n?n+' gewählt':g.items.length+' Schritte')+'</span></button>'+(op?g.items.map(t=>'<label style="display:flex;align-items:center;gap:8px;margin:2px 0 2px 8px"><input type="checkbox" id="ps-'+t.id+'" style="width:22px;height:22px" '+((p.steps||[]).includes(t.id)?'checked':'')+'>'+esc(t.name)+'</label>').join(''):'')}).join(''):''}
 <div class="zrow"><button class="zb g" style="flex:1" data-a="psave">💾 Speichern</button>${p.id||S.pm?'<button class="zb l" data-a="pcancel">Abbrechen</button>':''}</div></div>`}
 function retModal(){const r=S.ret;
 return`<div class="mo"><div class="mb"><b>Baustelle abschließen</b><small>Das Projekt wird dadurch <b>nicht gelöscht</b>, sondern nur aus der Liste ausgeblendet. Du findest es unter „Abgeschlossene anzeigen“ wieder und kannst es mit „Öffnen“ zurückholen. Alle Einträge und das Material bleiben erhalten.</small><small>Welches Material wurde nicht mehr gebraucht und geht zurück?</small><div class="ml">${r.rows.map((x,i)=>`<div class="zcard"><b>${esc(x.name)}</b>${x.used?'<br><small>eingetragen: '+esc(x.used)+'</small>':''}<div class="zrow" style="margin-top:6px"><input id="rq-${i}" inputmode="decimal" placeholder="zurück: Menge" value="${esc(x.qty)}"><span>${esc(x.unit)}</span><button class="zb r" data-a="rrm" data-i="${i}">✕</button></div></div>`).join('')||'<div class="zcard">Noch kein Material eingetragen – unten hinzufügen oder gleich abschließen.</div>'}</div>
@@ -181,8 +183,8 @@ return`<div class="zc"><div class="zrow"><button class="zb" data-a="wnav" data-v
 <div class="zsum">Woche gesamt: ${fh(tot)}</div>${rows}
 <button class="zb l" style="height:50px" data-a="wprev">👁 Vorschau</button><button class="zb g" style="height:52px" data-a="wsend">✉ Per E-Mail senden</button>${S.wnote?'<div class="zcard"><small>'+esc(S.wnote)+'</small></div>':''}</div>`}
 const WC=[['Datum',14],['Tag',10],['Kundenname',56],['Ob-Nr',18],['Std.',14],['von-bis',28],['Mittagspause',28],['Arbeitsbeschreibung',80],['Auto',29]],WCEN=[0,1,3,4,5,6];
-const wpr=e=>{const p=+e.pause||0;if(!p)return'';const x=dt(e.date).getDay()===5?D.std.fr:D.std.md,s=x.pf?tm(x.pf):720;if(s<tm(e.start)||s+p>tm(e.end))return p+' min';return ft(s)+'  -  '+ft(s+p)};
-const wbText=p=>{const w=Object.assign({name:1,client:1,addr:1,tel:0},p.wb||{});return[w.client&&p.client,w.name&&p.name,w.addr&&p.addr,w.tel&&p.tel].filter(Boolean).join(', ')};
+const wpr=e=>{const p=+e.pause||0;if(!p)return'';const x=dt(e.date).getDay()===5?D.std.fr:D.std.md;let s=x.pf?tm(x.pf):720;s=Math.max(tm(e.start),Math.min(s,tm(e.end)-p));return ft(s)+'  -  '+ft(s+p)};
+const wbText=p=>{const w=Object.assign({name:1,client:1,addr:1,tel:0},p.wb||{});return[w.client&&p.client,w.name&&p.name,w.addr&&p.addr,w.tel&&p.tel].filter(Boolean).filter((v,i,a)=>a.findIndex(q=>String(q).trim().toLowerCase()===String(v).trim().toLowerCase())===i).join(', ')};
 let _wm=null;
 const wrapT=txt=>{if(!txt)return[];try{if(!_wm){_wm=new window.jspdf.jsPDF();_wm.setFont('helvetica','normal');_wm.setFontSize(8.5)}return _wm.splitTextToSize(txt,WC[7][1]-3)}catch(x){return(txt.match(/.{1,45}(\s|$)/g)||[txt]).map(v=>v.trim())}};
 function wkData(mo){return[0,1,2,3,4,5,6].map(i=>{const s=addD(mo,i),es=on(s),base=i>=5?2:4,n=Math.max(es.length,base),k=es.length?Math.max(1,Math.floor(n/es.length)):1,q=dt(s),rows=[],N=Math.max(n,es.length*k);
@@ -192,20 +194,21 @@ if(e){const p=D.projects.find(x=>x.id===e.projectId);
 if(j===0){t[2]=p?wbText(p):'';t[3]=p?p.nr:'';t[4]=ft(Math.round(hrs(e)*60));t[5]=e.start+'  -  '+e.end;t[6]=wpr(e);if(ei===0||au(e)!==au(es[ei-1]))t[8]=au(e)}
 const sel=(e.wbt||[]).filter(x=>e.tasks.includes(x)),TL=sel.length?sel:e.tasks.slice(0,k),L=TL.slice();if(e.note){if(L.length)L[L.length-1]+=' - '+e.note;else L.push(e.note)}t[7]=j<k-1?(L[j]||''):L.slice(k-1).join(', ')}
 rows.push(t)}return rows})}
-function buildPdf(mo){const{jsPDF}=window.jspdf,d=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'}),th=dt(addD(mo,3)),C=WC,cen=WCEN,W=277,x0=10;let y=0;
-const hdr=()=>{let x=x0;d.setFont('helvetica','bold');d.setFontSize(8.5);d.setLineWidth(.6);C.forEach(c=>{d.rect(x,y,c[1],7,'S');d.text(c[0],x+c[1]/2,y+4.8,{align:'center'});x+=c[1]});y+=7;d.setFont('helvetica','normal')};
-d.setFont('helvetica','bold');d.setFontSize(18);d.text('ARBEITSEINTEILUNG',148.5,14,{align:'center'});
-d.setFont('helvetica','normal');d.setFontSize(10);d.text('Name: '+D.set.name,x0,23);d.text('Kalenderwoche: '+kw(mo),85,23);d.text('Monat: '+MON[th.getMonth()],150,23);d.text('Jahr: '+th.getFullYear(),x0+W,23,{align:'right'});
-y=28;hdr();
-wkData(mo).forEach(day=>{const rows=day.map(t=>{d.setFontSize(8.5);const L=t.map((v,k)=>d.splitTextToSize(String(v),C[k][1]-3));return{L,h:Math.max(6.4,Math.max(...L.map(a=>a.length))*3.6+2.6)}});
-const dh=rows.reduce((a,r)=>a+r.h,0);if(y+dh>192){d.addPage();y=12;hdr()}
-const top=y;d.setFontSize(8.5);
-rows.forEach((R,r)=>{let x=x0;R.L.forEach((a,k)=>{const c=cen.includes(k);d.text(a,c?x+C[k][1]/2:x+1.5,y+4.4,{align:c?'center':'left'});x+=C[k][1]});
-if(r<rows.length-1){d.setLineWidth(.2);d.setLineDashPattern([.5,.7],0);d.line(x0,y+R.h,x0+W-C[8][1],y+R.h);d.setLineDashPattern([],0)}y+=R.h});
+function buildPdf(mo){const{jsPDF}=window.jspdf,d=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'}),th=dt(addD(mo,3)),C=WC,cen=WCEN,W=277,x0=10,data=wkData(mo),TOP=21,HH=7,LIM=199;let y=0;
+const LV=[[8.5,3.6,2.6,6.4],[8,3.3,2.2,5.8],[7.5,3.1,2,5.3],[7,2.9,1.7,4.8],[6.5,2.7,1.5,4.4]];
+const lay=L=>{d.setFont('helvetica','normal');d.setFontSize(L[0]);let tot=0;const days=data.map(day=>{const rows=day.map(t=>{const Ls=t.map((v,k)=>d.splitTextToSize(String(v),C[k][1]-3));return{L:Ls,h:Math.max(L[3],Math.max(...Ls.map(a=>a.length))*L[1]+L[2])}});tot+=rows.reduce((a,r)=>a+r.h,0);return rows});return{days,tot}};
+let L=LV[LV.length-1],R=null;for(const l of LV){const r=lay(l);if(TOP+HH+r.tot<=LIM){L=l;R=r;break}}if(!R)R=lay(L);
+const hdr=()=>{let x=x0;d.setFont('helvetica','bold');d.setFontSize(8.5);d.setLineWidth(.6);C.forEach(c=>{d.rect(x,y,c[1],HH,'S');d.text(c[0],x+c[1]/2,y+4.8,{align:'center'});x+=c[1]});y+=HH;d.setFont('helvetica','normal')};
+d.setFont('helvetica','bold');d.setFontSize(16);d.text('ARBEITSEINTEILUNG',148.5,11,{align:'center'});
+d.setFont('helvetica','normal');d.setFontSize(10);d.text('Name: '+D.set.name,x0,18);d.text('Kalenderwoche: '+kw(mo),85,18);d.text('Monat: '+MON[th.getMonth()],150,18);d.text('Jahr: '+th.getFullYear(),x0+W,18,{align:'right'});
+y=TOP;hdr();d.setFontSize(L[0]);d.setLineHeightFactor(L[1]/(L[0]*0.3528));
+R.days.forEach(rows=>{const dh=rows.reduce((a,r)=>a+r.h,0);if(y+dh>LIM){d.addPage();y=12;hdr();d.setFontSize(L[0])}
+const top=y,by=(L[3]+L[0]*0.3528*0.72)/2;
+rows.forEach((Rw,r)=>{let x=x0;Rw.L.forEach((a,k)=>{const c=cen.includes(k);d.text(a,c?x+C[k][1]/2:x+1.5,y+by,{align:c?'center':'left'});x+=C[k][1]});
+if(r<rows.length-1){d.setLineWidth(.2);d.setLineDashPattern([.5,.7],0);d.line(x0,y+Rw.h,x0+W-C[8][1],y+Rw.h);d.setLineDashPattern([],0)}y+=Rw.h});
 d.setLineWidth(.2);let x=x0;C.slice(0,-1).forEach(c=>{x+=c[1];d.line(x,top,x,top+dh)});
 d.setLineWidth(.6);d.rect(x0,top,W,dh,'S')});
-if(y+10>205){d.addPage();y=12}
-const n=new Date();d.setFontSize(8);d.text('Erstellt am: von '+D.set.name+'    '+p2(n.getDate())+'.'+p2(n.getMonth()+1)+'.'+n.getFullYear()+' '+p2(n.getHours())+':'+p2(n.getMinutes())+' Uhr',x0+W,y+8,{align:'right'});return d}
+const n=new Date();d.setFontSize(8);d.text('Erstellt am: von '+D.set.name+'    '+p2(n.getDate())+'.'+p2(n.getMonth()+1)+'.'+n.getFullYear()+' '+p2(n.getHours())+':'+p2(n.getMinutes())+' Uhr',x0+W,Math.min(y+5,206),{align:'right'});return d}
 function prevModal(){const mo=S.wk,th=dt(addD(mo,3));
 const head='<tr>'+WC.map(c=>`<th style="width:${c[1]*3}px">${c[0]}</th>`).join('')+'</tr>';
 const body=wkData(mo).map(rows=>'<tbody>'+rows.map(t=>'<tr>'+t.map((v,k)=>`<td style="text-align:${WCEN.includes(k)?'center':'left'}">${esc(v)}</td>`).join('')+'</tr>').join('')+'</tbody>').join('');
@@ -245,7 +248,7 @@ const T={week:'Wochenbericht',menu:'Zeiterfassung',write:'Stunden schreiben',ove
 function render(){titleEl.textContent=view==='plc'&&S.sv?SV[S.sv][0]:T[view];root.innerHTML={menu:rMenu,write:rWrite,over:rOver,proj:rProj,week:rWeek,stat:rStat,plc:rPlc}[view]();window.scrollTo(0,0)}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&view==='write'&&S.e&&S.opened&&S.opened!==iso(new Date())){S.e=newEntry();reloadDay();S.opened=iso(new Date());render()}});
 function go(v){view=v;if(v==='stat')S.f=S.f||statDef();if(v==='plc'){S.sv=null;S.lq='';S.ln=''}if(v==='week')S.wk=S.wk||monday(iso(new Date()));S.pick=null;S.pm=false;S.ret=null;S.prev=false;S.le=null;S.rc=null;if(v==='write'&&!S.e){S.e=newEntry();reloadDay()}if(v==='write'){S.opened=iso(new Date());migrateMat()}if(v==='over'){S.mode=S.mode||'month';S.sel=S.sel||iso(new Date());S.cur=S.sel}if(v==='proj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.q=''}render()}
-function adj(k,d){const e=S.e,s=D.step;if(k==='pause')e.pause=Math.max(0,+e.pause+d*s);else e[k]=ft(Math.min(1439,Math.max(0,tm(e[k])+d*s)))}
+function adj(k,d){const e=S.e,s=D.step;if(k==='pause'){e.pause=Math.max(0,+e.pause+d*s);e.pm=1}else{e[k]=ft(Math.min(1439,Math.max(0,tm(e[k])+d*s)));if(!e.pm)e.pause=pFit(e)}}
 function act(a,b,el){const e=S.e;
 if(a==='go')return go(b.v);
 if(a==='wprev'){S.prev=true;return render()}
@@ -275,7 +278,7 @@ if(a==='rx'){S.rc=null;return render()}
 if(a==='rtog'){const m=mailList()[+b.i],k=S.rc.indexOf(m);k<0?S.rc.push(m):S.rc.splice(k,1);return render()}
 if(a==='rsend'){const to=S.rc.slice();S.rc=null;return wpdf(true,to)}
 if(a==='up'||a==='dn'){adj(b.k,a==='up'?1:-1);return render()}
-if(a==='now'){const n=new Date(),m=Math.round((n.getHours()*60+n.getMinutes())/D.step)*D.step;e[b.k]=ft(Math.min(1439,m));return render()}
+if(a==='now'){const n=new Date(),m=Math.round((n.getHours()*60+n.getMinutes())/D.step)*D.step;e[b.k]=ft(Math.min(1439,m));if(!e.pm)e.pause=pFit(e);return render()}
 if(a==='dprev'||a==='dnext'){e.date=addD(e.date,a==='dprev'?-1:1);reloadDay(true);return render()}
 if(a==='tog'){const l=e[b.k],i=l.indexOf(b.v);i<0?l.push(b.v):l.splice(i,1);if(S.pick&&el){const on=i<0;el.classList.toggle('on',on);el.textContent=(on?'☑ ':'☐ ')+b.v;document.querySelector('[data-a=fin]').textContent='Fertig ('+l.length+')';return}return render()}
 if(a==='mtog'){const l=e.material,i=l.findIndex(m=>m.name===b.v),st=(document.querySelector('.ml')||{}).scrollTop||0;if(i<0)l.push({name:b.v,qty:'',unit:D.mu[b.v]||D.units[0]});else l.splice(i,1);render();const m2=document.querySelector('.ml');if(m2)m2.scrollTop=st;if(i<0){const q=document.getElementById('mq-'+(l.length-1));if(q)q.focus()}return}
@@ -294,7 +297,7 @@ if(a==='madd'){const n=document.getElementById('m-sel').value;if(!n)return;e.mat
 if(a==='mdel'){e.material.splice(+b.i,1);return render()}
 if(a==='newproj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.pm=true;return render()}
 if(a==='newcar'){const v=(prompt('Kennzeichen (z. B. VL 123 AB):')||'').trim().toUpperCase();if(!v)return;if(!D.cars.includes(v))D.cars.push(v);e.auto=v;save();return render()}
-if(a==='std'){Object.assign(e,stdFor(e.date));return render()}
+if(a==='std'){Object.assign(e,stdFor(e.date));e.pm=0;return render()}
 if(a==='save'){if(D.set.hasCar&&D.set.car&&!e.auto)e.auto=D.set.car;D.lastCar=e.auto||D.lastCar;if(!e.tasks.length&&!isAbs(e.projectId))return alert('Bitte mindestens eine Tätigkeit wählen (nur bei Urlaub und Krankenstand nicht nötig).');if(tm(e.end)<=tm(e.start))return alert('„Bis“ muss nach „Von“ liegen.');flushMat();if(!isAbs(e.projectId))D.lastProj=e.projectId;if(!e.id){e.id=Date.now();D.entries.push(e)}else D.entries=D.entries.map(x=>x.id===e.id?e:x);save();S.sel=e.date;S.e=null;go('over');return}
 if(a==='edit'){S.e=JSON.parse(JSON.stringify(D.entries.find(x=>x.id==b.i)));return go('write')}
 if(a==='del'){if(!confirm('Eintrag wirklich löschen?'))return;D.entries=D.entries.filter(x=>x.id!=b.i);save();S.e=null;return go('over')}
@@ -312,6 +315,7 @@ if(a==='rrm'){S.ret.rows.splice(+b.i,1);return render()}
 if(a==='radd'){const n=document.getElementById('rt-sel').value,u=document.getElementById('rt-unit').value;if(!n)return;S.ret.rows.push({name:n,unit:u,qty:(S.ret.mq||'').trim(),used:''});S.ret.mq='';return render()}
 if(a==='rcancel'){S.ret=null;return render()}
 if(a==='rsave'){const p=D.projects.find(x=>x.id===S.ret.id);p.returns=S.ret.rows.filter(x=>(x.qty||'').trim()).map(x=>({name:x.name,qty:x.qty.trim(),unit:x.unit}));p.done=true;S.ret=null;save();alert('Projekt abgeschlossen. Es ist nicht gelöscht: Unter „Abgeschlossene anzeigen“ findest du es wieder.');return render()}
+if(a==='pgrp'){S.p.open=S.p.open||{};S.p.open[b.c]=!S.p.open[b.c];const y=scrollY;render();scrollTo(0,y);return}
 if(a==='pall'){S.all=!S.all;return render()}}
 function onIn(ev){const i=ev.target.id,v=ev.target.value;
 if(i&&i.slice(0,3)==='st-'){S.f=S.f||statDef();S.f[i.slice(3)]=v;render()}else if(i==='f-date'&&v){S.e.date=v;reloadDay(true);render()}else if(i==='f-proj'){S.e.projectId=v?+v:'';reloadDay();render()}else if(i==='f-note')S.e.note=v;else if(i==='f-car')S.e.auto=v;else if(i==='w-name'){D.set.name=v;save()}else if(i==='w-mail'){D.set.mail=v;save()}else if(i==='m-qty')S.mq=v;else if(i==='m-sel')S.ms=v;
@@ -336,5 +340,5 @@ if(bad){Object.assign(x,o);alert(bad);['start','end','pf','pt'].forEach(g=>q('sd
 save();['pf','pt'].forEach(g=>q('sd-'+k+'-'+g).value=x[g]);q('sdsum-'+k).textContent='Arbeitszeit: '+fh(Math.max(0,tm(x.end)-tm(x.start)-(x.pf&&x.pt?tm(x.pt)-tm(x.pf):0))/60)}
 else if(i==='pk-q'){S.pick.q=v;render();const q=document.getElementById('pk-q');q.focus();q.setSelectionRange(v.length,v.length)}
 else if(i==='p-q'){S.q=v;const pos=v.length;render();const q=document.getElementById('p-q');q.focus();q.setSelectionRange(pos,pos)}}
-return{open(r,t){root=r;titleEl=t;if(!r._z){r._z=1;r.addEventListener('click',ev=>{const b=ev.target.closest('[data-a]');if(b)act(b.dataset.a,b.dataset,b)});r.addEventListener('input',onIn);r.addEventListener('change',onIn);r.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.id==='l-new'){ev.preventDefault();act('ladd',{},ev.target)}if(ev.key==='Enter'&&ev.target.id==='m-new'){ev.preventDefault();act('madd',{},ev.target)}if(ev.key==='Enter'&&ev.target.id==='l-edit'){ev.preventDefault();act('lsave',{},ev.target)}})}view='menu';S={};render()},
-_pdf:()=>{S.wk=S.wk||monday(iso(new Date()));return buildPdf(S.wk)},_wk:w=>{S.wk=monday(w)},data(){return D},back(){if(S.rc){S.rc=null;render();return true}if(S.le!=null){S.le=null;render();return true}if(S.prev){S.prev=false;render();return true}if(S.pm){S.pm=false;render();return true}if(S.ret){S.ret=null;render();return true}if(S.pick){S.pick=null;render();return true}if(view==='plc'&&S.sv){S.sv=null;render();return true}if(view==='menu')return false;if(view==='write'&&S.e&&S.e.id){S.e=null;go('over')}else{S.e=null;go('menu')}return true}}})();
+return{open(r,t){fixPause();root=r;titleEl=t;if(!r._z){r._z=1;r.addEventListener('click',ev=>{const b=ev.target.closest('[data-a]');if(b)act(b.dataset.a,b.dataset,b)});r.addEventListener('input',onIn);r.addEventListener('change',onIn);r.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.id==='l-new'){ev.preventDefault();act('ladd',{},ev.target)}if(ev.key==='Enter'&&ev.target.id==='m-new'){ev.preventDefault();act('madd',{},ev.target)}if(ev.key==='Enter'&&ev.target.id==='l-edit'){ev.preventDefault();act('lsave',{},ev.target)}})}view='menu';S={};render()},
+_fix:()=>fixPause(),_pdf:()=>{S.wk=S.wk||monday(iso(new Date()));return buildPdf(S.wk)},_wk:w=>{S.wk=monday(w)},data(){return D},back(){if(S.rc){S.rc=null;render();return true}if(S.le!=null){S.le=null;render();return true}if(S.prev){S.prev=false;render();return true}if(S.pm){S.pm=false;render();return true}if(S.ret){S.ret=null;render();return true}if(S.pick){S.pick=null;render();return true}if(view==='plc'&&S.sv){S.sv=null;render();return true}if(view==='menu')return false;if(view==='write'&&S.e&&S.e.id){S.e=null;go('over')}else{S.e=null;go('menu')}return true}}})();
