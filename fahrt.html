@@ -53,9 +53,15 @@ let tab='heute',mon='';
 const gps=()=>new Promise((r,j)=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>r(p.coords),j,{enableHighAccuracy:true,timeout:15000}):j({code:0}));
 async function addr(){const c=await gps();try{const j=await(await fetch('https://nominatim.openstreetmap.org/reverse?format=json&accept-language=de&lat='+c.latitude+'&lon='+c.longitude)).json(),a=j.address||{};
 const s=[a.road,a.house_number].filter(Boolean).join(' '),o=[a.postcode,a.city||a.town||a.village||a.municipality].filter(Boolean).join(' ');return [s,o].filter(Boolean).join(', ')||j.display_name||''}catch(e){return c.latitude.toFixed(5)+', '+c.longitude.toFixed(5)}}
+function startFb(t){try{if((Z()?Z().vib:1)!==0&&navigator.vibrate)navigator.vibrate([70,80,70])}catch(e){}
+const home=S.set.homeAfterStart!==false,o=document.createElement('div');o.id='fbo';
+o.style.cssText='position:fixed;inset:0;background:rgba(232,131,47,.97);color:#1c1c1c;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-weight:700;text-align:center;padding:20px';
+o.innerHTML='<div style="font-size:72px;line-height:1">✔</div><div style="font-size:28px">Fahrt gestartet</div><div style="font-size:22px">'+tstr(new Date(t.st[0].zeit))+' Uhr</div><div style="font-size:15px;font-weight:400">'+(home?'Zurück zur Startseite …':'Antippen zum Schließen')+'</div>';
+document.body.appendChild(o);let done=false;const fin=()=>{if(done)return;done=true;o.remove();if(home){try{parent.location.hash=''}catch(e){}}};
+o.onclick=fin;setTimeout(fin,home?1700:2500)}
 async function start(){const l=[...S.tage].reverse().find(t=>t.kmE);
 const t={id:Date.now(),fahrer:S.set.fahrer,bf:['',''],aus:false,kmS:l?l.kmE:'',kmE:'',fertig:false,st:[{typ:'Start',zeit:new Date().toISOString(),name:'',adr:'',zweck:''}]};
-S.tage.push(t);save();render();let a='';try{a=await addr()}catch(e){}t.st[0].adr=a||S.set.home;save();if(tab==='heute')render()}
+S.tage.push(t);save();render();startFb(t);let a='';try{a=await addr()}catch(e){}t.st[0].adr=a||S.set.home;save();if(tab==='heute')render()}
 const upd=(k,v)=>{cur()[k]=v;save()},bf=(i,v)=>{cur().bf[i]=v;save()},sv=(k,v)=>{S.set[k]=v;save()};
 async function loc(id,b){const el=$('#'+id);b.disabled=true;b.textContent='Standort wird gesucht …';
 try{const a=await addr();el.value=a;el.dispatchEvent(new Event('input'));el.dispatchEvent(new Event('change'))}
@@ -65,19 +71,19 @@ const t0=v=>{cur().st[0].adr=v;save()};
 async function station(typ){const t=cur(),z=new Date().toISOString(),zw=lines(S.set.zwecke),
 def={Baustelle:'Baustelle',Material:'Material holen',Firma:'Firma',Pause:'Café/Pause',Ende:t.aus?'Montage':''}[typ],
 h={Ende:'Ende / Heimfahrt',Material:'Material holen',Pause:'Café / Pause'}[typ]||typ;
-D.innerHTML='<h3>'+h+'</h3><label>Name / Baustelle</label><input id="n" autocomplete="off"><div id="ol2">'+ortl('')+'</div>'+
+D.innerHTML='<h3>'+h+'</h3>'+(typ==='Ende'?pjs():'')+'<label>Name / Baustelle</label><input id="n" autocomplete="off"><div id="ol2">'+(typ==='Ende'?pjl(''):'')+ortl('')+'</div>'+
 '<label>Adresse</label><input id="a" placeholder="Adresse eintippen oder Standort ermitteln"><button class="b s" style="padding:12px;margin:0 0 10px" onclick="loc(\'a\',this)">📍 Standort ermitteln</button><label>Zweck</label><select id="z"><option></option>'+zw.map(x=>'<option'+(x===def?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select>'+
 (typ==='Ende'?'<label>Tachostand Ende (km)</label><input id="k" type="number" inputmode="numeric">':'')+
 '<div id="e" style="display:none;color:#ffb4a8;margin:4px 0"></div><div class="g"><button class="b s" id="x">Abbrechen</button><button class="b" id="ok">Speichern</button></div>';
-D.showModal();let ty=false;
+D.showModal();let ty=false,pid='';const spick=p=>{pid=p.id;$('#n').value=p.client||p.name;$('#a').value=p.addr||p.name;ty=true;$('#ol2').innerHTML=''};if($('#pp'))$('#pp').onchange=e=>{const p=(Z().projects||[]).find(x=>String(x.id)===e.target.value);if(p)spick(p)};
 if(typ==='Firma'){$('#n').value='Trendfloor';$('#a').value=S.set.firma;ty=true}
 $('#a').oninput=()=>ty=true;
-$('#n').oninput=e=>{$('#ol2').innerHTML=ortl(e.target.value);const v=S.orte[e.target.value];if(v){$('#a').value=v;ty=true}};$('#ol2').onclick=e=>{const r=e.target.closest('.row');if(r){const k=r.dataset.k;$('#n').value=k;$('#a').value=S.orte[k];ty=true;$('#ol2').innerHTML=''}};
+$('#n').oninput=e=>{$('#ol2').innerHTML=(typ==='Ende'?pjl(e.target.value):'')+ortl(e.target.value);pid='';const v=S.orte[e.target.value];if(v){$('#a').value=v;ty=true}};$('#ol2').onclick=e=>{const r=e.target.closest('.row');if(r&&r.dataset.p){const p=(Z().projects||[]).find(x=>String(x.id)===r.dataset.p);if(p)spick(p);return}if(r){const k=r.dataset.k;$('#n').value=k;$('#a').value=S.orte[k];ty=true;$('#ol2').innerHTML=''}};
 $('#x').onclick=()=>D.close();
 if(!ty)addr().then(a=>{if(!ty&&D.open)$('#a').value=a}).catch(()=>{if(!ty&&D.open&&typ==='Ende')$('#a').value=S.set.home});
 $('#ok').onclick=()=>{const n=$('#n').value.trim(),a=$('#a').value.trim();
 if(typ==='Ende'){const k=+$('#k').value;if(!k){msg('Bitte Tachostand eingeben');return}if(t.kmS&&k<t.kmS){msg('Tachostand Ende ist kleiner als Start');return}t.kmE=k;t.fertig=true}
-t.st.push({typ,zeit:z,name:n,adr:a,zweck:$('#z').value});if(n||a)S.orte[n||a]=a||n;
+t.st.push({typ,zeit:z,name:n,adr:a,zweck:$('#z').value,pid:pid||undefined});if(n||a)S.orte[n||a]=a||n;
 save();D.close();render()}}
 function stl(t){let n=0;return t.st.map(s=>{const l=s.typ==='Start'||s.typ==='Ende'?s.typ:(++n)+'. '+s.typ;
 return '<div class="st"><span>'+tstr(new Date(s.zeit))+'</span><div><b>'+l+'</b> '+esc(s.name)+'<div class="mu">'+esc(s.adr)+(s.zweck?' · '+esc(s.zweck):'')+(s.bf&&(s.bf[0]||s.bf[1])?' · mit '+s.bf.filter(Boolean).map(esc).join(', '):'')+'</div></div></div>'}).join('')}
@@ -117,10 +123,10 @@ if(id)$('#dl').onclick=()=>{D.innerHTML='<h3>Lieferant löschen?</h3><p class="m
 const lsel=(t)=>{const L=LF().filter(x=>x.t===t).sort((x,y)=>x.n.localeCompare(y.n,'de'));return L.length?'<select onchange="lpk(this)"><option value="">▾ aus Lieferanten wählen</option>'+L.map(x=>'<option value="'+x.id+'">'+esc(x.n)+(x.a?' · '+esc(x.a):'')+'</option>').join('')+'</select>':''};
 function lpk(el){const x=LF().find(y=>String(y.id)===el.value);if(!x)return;$('#to').value=x.n;if($('#ta'))$('#ta').value=x.a||'';el.selectedIndex=0}
 const lief=()=>LF().filter(x=>x.t==='mat').sort((a,b)=>a.n.localeCompare(b.n)).map(x=>({id:x.id,n:x.n,a:x.a}));
-const pjl=q=>{const z=Z();if(!z)return'';const last={};(z.entries||[]).forEach(e=>{if(e.projectId&&(!last[e.projectId]||e.date>last[e.projectId]))last[e.projectId]=e.date});q=(q||'').toLowerCase();
-const k=(z.projects||[]).filter(p=>!p.done&&!p.kind&&(!q||[p.name,p.client,p.addr,p.nr].join(' ').toLowerCase().includes(q))).sort((a,b)=>(last[b.id]||'').localeCompare(last[a.id]||'')).slice(0,5);
+const pjl=q=>{const z=Z();if(!z)return'';q=(q||'').toLowerCase();
+const k=pjall().filter(p=>!q||[p.name,p.client,p.addr,p.nr].join(' ').toLowerCase().includes(q)).slice(0,5);
 return k.length?'<label>Projekte aus der Zeiterfassung</label>'+k.map(p=>'<div class="row" data-p="'+p.id+'"><b>'+esc(p.addr||p.name)+'</b><div class="mu">'+esc([p.client,p.addr?p.name:'',p.nr].filter(Boolean).join(' · '))+'</div></div>').join(''):''};
-const pjall=()=>{const z=Z();if(!z)return[];const last={};(z.entries||[]).forEach(e=>{if(e.projectId&&(!last[e.projectId]||e.date>last[e.projectId]))last[e.projectId]=e.date});return(z.projects||[]).filter(p=>!p.done&&!p.kind).sort((a,b)=>(last[b.id]||'').localeCompare(last[a.id]||''))};
+const pjall=()=>{const z=Z();if(!z)return[];const dp=new Set((cur()?cur().st:[]).map(s=>s.pid).filter(Boolean));const last={};(z.entries||[]).forEach(e=>{if(e.projectId&&(!last[e.projectId]||e.date>last[e.projectId]))last[e.projectId]=e.date});return(z.projects||[]).filter(p=>!p.done&&!p.kind).sort((a,b)=>(dp.has(b.id)-dp.has(a.id))||(last[b.id]||'').localeCompare(last[a.id]||''))};
 const pjs=()=>{const l=pjall();return l.length?'<label>Projekt aus der Zeiterfassung</label><select id="pp"><option value="">– Projekt wählen –</option>'+l.map(p=>'<option value="'+p.id+'">'+esc([p.client,p.addr||p.name].filter(Boolean).join(' · ')||p.name)+'</option>').join('')+'</select>':''};
 const bsl=q=>{const k=Object.keys(S.bs).filter(x=>x.toLowerCase().includes(q.toLowerCase())).sort((a,b)=>S.bs[b].t-S.bs[a].t).slice(0,4);return k.length?'<label>'+(q?'Passende Adressen':'Zuletzt verwendet')+'</label>'+k.map(x=>'<div class="row" data-k="'+esc(x)+'"><b>'+esc(x)+'</b><div class="mu">'+S.bs[x].w.slice(0,4).map(esc).join(', ')+'</div></div>').join(''):''};
 const clean=()=>conf('Adressen ohne Besuch seit 12 Monaten aus den Vorschlägen entfernen? Das Fahrtenbuch bleibt unverändert.',()=>{const l=Date.now()-365*864e5;Object.keys(S.bs).forEach(k=>{if(S.bs[k].t<l)delete S.bs[k]})});
@@ -208,7 +214,7 @@ function einst(){const s=S.set;return '<div class="card"><label>Standard-Fahrer<
 '<label>Zuhause (falls GPS fehlt)</label><input value="'+esc(s.home)+'" onchange="sv(\'home\',this.value)">'+
 '<label>Firma</label><input value="'+esc(s.firma)+'" onchange="sv(\'firma\',this.value)">'+
 (Z()?'<label>Kollegen</label><div class="mu" style="margin:2px 0 10px">Kommen aus der Zeiterfassung (Einstellungen › Arbeitskollegen): '+(kol().map(esc).join(', ')||'noch keine')+'</div>':'<label>Kollegen (einer pro Zeile)</label><textarea rows="5" onchange="sv(\'kollegen\',this.value)">'+esc(s.kollegen)+'</textarea>')+
-'<label>Zwecke (einer pro Zeile)</label><textarea rows="6" onchange="sv(\'zwecke\',this.value)">'+esc(s.zwecke)+'</textarea></div><div class="card"><button class="b" onclick="lfm(\'mat\')">🏪 Lieferanten verwalten ('+LF().length+')</button><div class="mu">'+(Z()?'Gemeinsame Liste mit der Zeiterfassung (dort: Projekte &amp; Lieferanten). ':'')+'Material, Tankstellen und Werkstätten – getrennt von den Kunden.</div></div>'+
+'<label>Zwecke (einer pro Zeile)</label><textarea rows="6" onchange="sv(\'zwecke\',this.value)">'+esc(s.zwecke)+'</textarea></div><div class="card"><label style="display:flex;gap:10px;align-items:center;margin:0"><input type="checkbox" style="width:auto" '+(S.set.homeAfterStart!==false?'checked':'')+' onchange="sv(\'homeAfterStart\',this.checked)"> Nach „▶ Start“ automatisch zurück zur Startseite</label></div><div class="card"><button class="b" onclick="lfm(\'mat\')">🏪 Lieferanten verwalten ('+LF().length+')</button><div class="mu">'+(Z()?'Gemeinsame Liste mit der Zeiterfassung (dort: Projekte &amp; Lieferanten). ':'')+'Material, Tankstellen und Werkstätten – getrennt von den Kunden.</div></div>'+
 '<div class="card"><button class="b s" onclick="clean()">Alte Baustellen-Adressen aufräumen</button><button class="b s" onclick="bk()">Backup speichern</button><label>Backup laden</label><input type="file" accept=".json" onchange="rs(this.files[0])"></div>'}
 const fm=(n,d)=>(+n).toFixed(d).replace('.',','),pn=v=>parseFloat(String(v).replace(',','.'))||0,ld=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),mkts=(d,t)=>{const a=d.split('-').map(Number),h=(t||'00:00').split(':').map(Number);return new Date(a[0],a[1]-1,a[2],h[0],h[1]).toISOString()};
 const conf=(h,fn)=>{D.innerHTML='<h3>'+h+'</h3><div class="g"><button class="b s" id="x">Abbrechen</button><button class="b r" id="ok">Löschen</button></div>';if(!D.open)D.showModal();$('#x').onclick=()=>D.close();$('#ok').onclick=()=>{fn();save();D.close();render()}};

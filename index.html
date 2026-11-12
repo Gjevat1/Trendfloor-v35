@@ -35,7 +35,7 @@ header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
    <button class="tile zeit" data-m="zeit"><span class="ic" style="background-image:url(zeit.png),url(icons/zeit.png)"></span>Zeiterfassung</button>
    <button class="tile mat" data-m="mat"><span class="ic" style="background-image:url(mat.png),url(icons/mat.png)"></span>Materialschein</button>
    <button class="tile regie" data-m="regie"><span class="ic" style="background-image:url(regie.png),url(icons/regie.png)"></span>Regiebericht</button>
-   <button class="tile fahrt" data-m="fahrt"><span class="ic" style="background-image:url(fahrt.png),url(icons/fahrt.png)"></span>Fahrtenbuch</button>
+   <button class="tile fahrt" data-m="fahrt"><span class="ic" style="background-image:url(fahrt.png),url(icons/fahrt.png)"></span><span style="text-align:center">Fahrtenbuch<br><small id="bFahrt" style="display:none;font-size:.62em;background:#fff;color:#e8832f;border-radius:10px;padding:1px 9px">▶ Fahrt läuft</small></span></button>
   <button class="tile wide kont" data-m="kontakt"><svg viewBox="0 0 64 64"><rect x="12" y="6" width="42" height="52" rx="5"/><path d="M12 18h-4M12 32h-4M12 46h-4"/><circle cx="33" cy="26" r="7"/><path d="M21 46c0-8 5-12 12-12s12 4 12 12"/></svg>Kontakte &amp; Infos</button>
   <button class="tile wide todo" id="tileTodo" data-m="todo"><span class="em">✅</span>To-do-Liste</button>
   <button class="tile wide bak" data-m="backup"><span class="em">⚙</span>Einstellungen</button>
@@ -45,7 +45,7 @@ header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
   <div class="bar" id="modbar"><button id="back" aria-label="Zurück"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12H5M11.5 5.5L5 12l6.5 6.5"/></svg></button><span id="modtitle"></span></div>
   <div class="card" id="modbody"></div>
  </div>
- <div class="status"><span class="dot" id="dot"></span><span id="st"></span> · Version 060</div>
+ <div class="status"><span class="dot" id="dot"></span><span id="st"></span> · Version 061</div>
 </div>
 <script src="jspdf.min.js"></script>
 <script src="zeit.js"></script>
@@ -105,8 +105,9 @@ alert('Wiederhergestellt. Die App wird neu geladen.');setTimeout(()=>{location.h
 return{open(r){root=r;note='';view()}}})();
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
 const $=id=>document.getElementById(id);
+function tfBadge(){try{const s=JSON.parse(localStorage.getItem('tf_fahrt_v1')||'{}');$('bFahrt').style.display=(s.tage||[]).some(t=>!t.fertig)?'inline-block':'none'}catch(e){}}
 function show(m){
- if(!MODS[m]){$('home').classList.remove('hide');$('mod').classList.add('hide');return;}
+ if(!MODS[m]){tfBadge();$('home').classList.remove('hide');$('mod').classList.add('hide');return;}
  $('home').classList.add('hide');$('mod').classList.remove('hide');
  $('modbar').style.background=MODS[m][1];$('modtitle').textContent=MODS[m][0];
  $('modbody').classList.toggle('card',m!=='zeit'&&m!=='kontakt'&&m!=='mat'&&m!=='todo'&&m!=='fahrt');if(m==='zeit')Zeit.open($('modbody'),$('modtitle'));else if(m==='kontakt')Kontakt.open($('modbody'),$('modtitle'));else if(m==='mat')Mat.open($('modbody'),$('modtitle'));else if(m==='regie')Regie.open($('modbody'),$('modtitle'));else if(m==='todo')Todo.open($('modbody'),$('modtitle'));else if(m==='fahrt')Fahrt.open($('modbody'),$('modtitle'));else if(m==='backup')Backup.open($('modbody'));else $('modbody').innerHTML='<b>'+MODS[m][0]+'</b><br>Dieses Modul wird als Nächstes eingebaut.';
