@@ -1,0 +1,46 @@
+TRENDFLOOR KI-ASSISTENT v003 – EINRICHTUNG (einmalig, ca. 15 Minuten)
+
+Was du bekommst: Der Assistent versteht freie Fragen. Die KI läuft auf deinem
+eigenen kostenlosen Cloudflare-Konto. Es gibt ein tägliches Gratis-Kontingent.
+Ist es aufgebraucht oder fehlt das Internet, antwortet automatisch die
+Offline-Version der App weiter.
+
+TEIL 1 – Server bei Cloudflare einrichten
+1. Auf dash.cloudflare.com ein kostenloses Konto anlegen (E-Mail bestätigen).
+2. Links "Workers & Pages" öffnen -> "Create" / "Worker erstellen".
+3. Vorlage "Hello World" wählen, Name zum Beispiel: trendfloor-ki
+   -> "Deploy".
+4. Danach "Edit code" / "Code bearbeiten" öffnen.
+   Den ganzen vorhandenen Text löschen und den kompletten Inhalt der Datei
+   worker.js einfügen. -> "Deploy".
+5. Zurück zur Übersicht des Workers: "Settings" / "Einstellungen".
+   a) "Bindings" -> "Add" / "Hinzufügen" -> "Workers AI".
+      Variablenname GENAU: AI   -> speichern.
+   b) "Variables and Secrets" -> "Add":
+      Typ "Secret", Name GENAU: APP_CODE
+      Wert: ein Zugangscode, den du dir selbst ausdenkst (mindestens 8 Zeichen,
+      nur Buchstaben und Zahlen). Merk ihn dir. -> "Deploy".
+6. Die Adresse des Workers kopieren. Sie sieht so aus:
+   https://trendfloor-ki.DEIN-NAME.workers.dev
+   Zum Test im Handy-Browser öffnen: Es sollte erscheinen
+   {"ok":true,"info":"Trendfloor KI-Server läuft."}
+
+TEIL 2 – App verbinden
+1. Neue ki-assistent.js wie gewohnt in die App einspielen (GitHub).
+2. Assistent öffnen -> oben rechts das Zahnrad.
+3. Server-Adresse einfügen, Zugangscode eintragen -> "Speichern und testen".
+4. Die KI sollte kurz Hallo sagen. Dann einfach frei fragen, zum Beispiel:
+   "Wie viele Stunden waren es diese Woche?"
+
+WICHTIG ZU WISSEN
+- Der Zugangscode schützt dein Gratis-Kontingent vor Fremden. Er ist kein
+  KI-Schlüssel. Der Zugangscode wird auf dem Handy gespeichert.
+- Bei einer Frage an die KI gehen die dafür nötigen Daten (Projekte, letzte
+  Einträge der letzten 60 Tage) an deinen Cloudflare-Server. Die App speichert
+  und ändert dadurch nichts, und der Server speichert nichts.
+- Die Schaltflächen (Heute, Woche, Pro Projekt ...) rechnen weiter lokal und
+  verbrauchen kein KI-Kontingent.
+- Das Gratis-Kontingent gilt pro Tag und wird nachts zurückgesetzt. Die
+  Cloudflare-Bedingungen und das verwendete Modell können sich ändern.
+- Menünamen im Cloudflare-Dashboard können leicht anders heißen. Wenn etwas
+  nicht passt: Screenshot machen und mir schicken.
