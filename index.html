@@ -38,6 +38,7 @@ header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
    <button class="tile fahrt" data-m="fahrt"><span class="ic" style="background-image:url(fahrt.png),url(icons/fahrt.png)"></span>Fahrtenbuch</button>
   <button class="tile wide kont" data-m="kontakt"><svg viewBox="0 0 64 64"><rect x="12" y="6" width="42" height="52" rx="5"/><path d="M12 18h-4M12 32h-4M12 46h-4"/><circle cx="33" cy="26" r="7"/><path d="M21 46c0-8 5-12 12-12s12 4 12 12"/></svg>Kontakte &amp; Infos</button>
   <button class="tile wide todo" id="tileTodo" data-m="todo"><span class="em">✅</span>To-do-Liste</button>
+  <button class="tile wide bak" data-m="ki"><span class="em">🤖</span>KI-Assistent</button>
   <button class="tile wide bak" data-m="backup"><span class="em">⚙</span>Einstellungen</button>
   </div>
  </div>
@@ -54,8 +55,9 @@ header img{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}
 <script src="regie.js"></script>
 <script src="todo.js"></script>
 <script src="fahrt.js"></script>
+<script src="ki-assistent.js"></script>
 <script>
-const MODS={zeit:['Zeiterfassung','#0659AA'],mat:['Materialschein','#2e8b3e'],regie:['Regiebericht','#e06f1f'],fahrt:['Fahrtenbuch','#e8832f'],kontakt:['Kontakte & Infos','#0e7c86'],todo:['To-do-Liste','#a5650e'],backup:['Einstellungen','#444d5a']};
+const MODS={zeit:['Zeiterfassung','#0659AA'],mat:['Materialschein','#2e8b3e'],regie:['Regiebericht','#e06f1f'],fahrt:['Fahrtenbuch','#e8832f'],kontakt:['Kontakte & Infos','#0e7c86'],todo:['To-do-Liste','#a5650e'],ki:['KI-Assistent','#354f8a'],backup:['Einstellungen','#444d5a']};
 
 (()=>{
 const st=document.createElement('style');st.textContent='.tfov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99999;padding:24px}.tfbox{background:#fff;border-radius:16px;padding:18px;max-width:420px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.35);font-family:inherit}.tfmsg{white-space:pre-line;font-size:1.05rem;margin-bottom:16px;color:#1d2733}.tfbtn{display:flex;gap:10px}.tfb{flex:1;border:0;border-radius:10px;height:46px;font-size:1.05rem;font-weight:700;color:#fff;background:#0659AA}.tfb.l{background:#8a95a3}.tftoast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#2e8b3e;color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;z-index:99999;box-shadow:0 4px 14px rgba(0,0,0,.35);max-width:88%;text-align:center;transition:opacity .4s}';document.head.appendChild(st);
@@ -109,10 +111,10 @@ function show(m){
  if(!MODS[m]){$('home').classList.remove('hide');$('mod').classList.add('hide');return;}
  $('home').classList.add('hide');$('mod').classList.remove('hide');
  $('modbar').style.background=MODS[m][1];$('modtitle').textContent=MODS[m][0];
- $('modbody').classList.toggle('card',m!=='zeit'&&m!=='kontakt'&&m!=='mat'&&m!=='todo'&&m!=='fahrt');if(m==='zeit')Zeit.open($('modbody'),$('modtitle'));else if(m==='kontakt')Kontakt.open($('modbody'),$('modtitle'));else if(m==='mat')Mat.open($('modbody'),$('modtitle'));else if(m==='regie')Regie.open($('modbody'),$('modtitle'));else if(m==='todo')Todo.open($('modbody'),$('modtitle'));else if(m==='fahrt')Fahrt.open($('modbody'),$('modtitle'));else if(m==='backup')Backup.open($('modbody'));else $('modbody').innerHTML='<b>'+MODS[m][0]+'</b><br>Dieses Modul wird als Nächstes eingebaut.';
+ $('modbody').classList.toggle('card',m!=='zeit'&&m!=='kontakt'&&m!=='mat'&&m!=='todo'&&m!=='fahrt');if(m==='zeit')Zeit.open($('modbody'),$('modtitle'));else if(m==='kontakt')Kontakt.open($('modbody'),$('modtitle'));else if(m==='mat')Mat.open($('modbody'),$('modtitle'));else if(m==='regie')Regie.open($('modbody'),$('modtitle'));else if(m==='todo')Todo.open($('modbody'),$('modtitle'));else if(m==='fahrt')Fahrt.open($('modbody'),$('modtitle'));else if(m==='ki')TrendfloorKI.open($('modbody'),$('modtitle'));else if(m==='backup')Backup.open($('modbody'));else $('modbody').innerHTML='<b>'+MODS[m][0]+'</b><br>Dieses Modul wird als Nächstes eingebaut.';
 }
 document.querySelectorAll('.tile').forEach(b=>b.onclick=()=>{location.hash=b.dataset.m});
-$('back').onclick=()=>{if(location.hash==='#zeit'&&Zeit.back())return;if(location.hash==='#kontakt'&&Kontakt.back())return;if(location.hash==='#mat'&&Mat.back())return;if(location.hash==='#regie'&&Regie.back())return;if(location.hash==='#todo'&&Todo.back())return;if(location.hash==='#fahrt'&&Fahrt.back())return;location.hash=''};
+$('back').onclick=()=>{if(location.hash==='#zeit'&&Zeit.back())return;if(location.hash==='#kontakt'&&Kontakt.back())return;if(location.hash==='#mat'&&Mat.back())return;if(location.hash==='#regie'&&Regie.back())return;if(location.hash==='#todo'&&Todo.back())return;if(location.hash==='#fahrt'&&Fahrt.back())return;if(location.hash==='#ki'&&TrendfloorKI.back())return;location.hash=''};
 addEventListener('hashchange',()=>show(location.hash.slice(1)));
 function net(){const on=navigator.onLine;$('dot').className='dot '+(on?'on':'off');$('st').textContent=on?'Online':'Offline – alles funktioniert weiter';}
 addEventListener('online',net);addEventListener('offline',net);net();show(location.hash.slice(1));
