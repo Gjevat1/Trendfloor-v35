@@ -253,7 +253,7 @@ const au=x=>x.auto||(D.set.hasCar?D.set.car||'':'');
 for(let r=0;r<N;r++){const ei=es.length?Math.floor(r/k):-1,e=ei>=0&&ei<es.length?es[ei]:null,j=e?r-ei*k:0,t=['',TAGE[q.getDay()],'','','','','','',''];if(r===0)t[0]=p2(q.getDate());
 if(e){const p=D.projects.find(x=>x.id===e.projectId);
 if(j===0){t[2]=p?wbText(p):'';t[3]=p?p.nr:'';t[4]=ft(Math.round(hrs(e)*60));t[5]=e.start+'  -  '+e.end;t[6]=wpr(e);if(ei===0||au(e)!==au(es[ei-1]))t[8]=au(e)}
-const sel=(e.wbt||[]).filter(x=>e.tasks.includes(x)),TL=sel.length?sel:e.tasks.slice(0,k),L=TL.slice();if(e.note){if(L.length)L[L.length-1]+=' - '+e.note;else L.push(e.note)}t[7]=j<k-1?(L[j]||''):L.slice(k-1).join(', ')}
+const sel=(e.wbt||[]).filter(x=>e.tasks.includes(x)),TL=sel.length?sel:e.tasks.slice(0,k),L=TL.slice();t[7]=j<k-1?(L[j]||''):L.slice(k-1).join(', ')}
 rows.push(t)}return rows})}
 function buildPdf(mo){const{jsPDF}=window.jspdf,d=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'}),th=dt(addD(mo,3)),C=WC,cen=WCEN,W=277,x0=10,data=wkData(mo),TOP=26,HH=7,LIM=202;let y=0;
 const LV=[[8.5,3.6,2.6,6.4],[8,3.3,2.2,5.8],[7.5,3.1,2,5.3],[7,2.9,1.7,4.8],[6.5,2.7,1.5,4.4]];
