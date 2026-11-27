@@ -67,8 +67,8 @@ const pname=id=>{const p=D.projects.find(x=>x.id===id);return p?(p.nr?p.nr+' · 
 const stdFor=d=>{const x=dt(d).getDay()===5?D.std.fr:D.std.md;return{start:x.start,end:x.end,pause:x.pf&&x.pt?tm(x.pt)-tm(x.pf):0}};
 const pFit=e=>{const x=dt(e.date).getDay()===5?D.std.fr:D.std.md;if(!(x.pf&&x.pt))return 0;return Math.max(0,Math.min(tm(x.pt),tm(e.end))-Math.max(tm(x.pf),tm(e.start)))};
 const isAbs=id=>{const p=D.projects.find(x=>x.id===id);return !!(p&&p.kind)};
-function reloadDay(nav){let e=S.e;if(!e)return false;let ch=false;
-const x=e.projectId?D.entries.find(q=>q.date===e.date&&q.projectId===e.projectId&&q.id!==e.id):null;
+function reloadDay(nav,fresh){let e=S.e;if(!e)return false;let ch=false;
+const x=(e.projectId&&!fresh)?D.entries.find(q=>q.date===e.date&&q.projectId===e.projectId&&q.id!==e.id):null;
 if(x){S.e=JSON.parse(JSON.stringify(x));return true}
 if(nav&&e.id){const n=newEntry(e.date);n.projectId=e.projectId;n.auto=e.auto;S.e=e=n;ch=true}
 if(isAbs(e.projectId)){const s=stdFor(e.date);Object.assign(e,{start:s.start,end:s.end,pause:s.pause,tasks:[],colleagues:[],material:[]});ch=true}
@@ -117,7 +117,10 @@ ${sc('a','Arbeiter',o('me',r.me+' (ich)',f.a)+o('all','Alle Arbeiter zusammen',f
 <div class="zcard"><div style="font-size:1.3rem;font-weight:700">Gesamt: ${fh(r.total)}</div>${f.a==='all'?'<small>alle Arbeiter zusammengerechnet</small>':''}${catRows}${sollRow}</div>
 ${yrCard}${pl?'<div class="zcard"><b>Nach Baustelle</b>'+pl+'</div>':''}${wl&&Object.keys(r.byW).length>1?'<div class="zcard"><b>Nach Arbeiter</b>'+wl+'</div>':''}
 ${list?'<b>Einträge</b>'+list:'<div class="zcard">Keine Einträge für diese Auswahl.</div>'}</div>`}
-function newEntry(date){date=date||iso(new Date());return Object.assign({id:0,date,projectId:(D.lastProj&&D.projects.some(p=>p.id===D.lastProj&&!p.done&&!p.kind))?D.lastProj:'',wbt:[],auto:(D.set.hasCar?D.set.car:D.lastCar)||'',tasks:[],colleagues:[],material:[],note:''},stdFor(date))}
+function newEntry(date){date=date||iso(new Date());const n=Object.assign({id:0,date,projectId:(D.lastProj&&D.projects.some(p=>p.id===D.lastProj&&!p.done&&!p.kind))?D.lastProj:'',wbt:[],auto:(D.set.hasCar?D.set.car:D.lastCar)||'',tasks:[],colleagues:[],material:[],note:''},stdFor(date));
+const es=D.entries.filter(x=>x.date===date&&!isAbs(x.projectId)&&x.end);
+if(es.length){const le=es.reduce((a,x)=>tm(x.end)>tm(a)?x.end:a,'00:00');n.start=le;if(tm(n.end)<=tm(le))n.end=le;n.pause=pFit(n);if(es.some(x=>x.projectId===n.projectId))n.projectId=''}
+return n}
 const css=document.createElement('style');css.textContent=`
 .zc{display:flex;flex-direction:column;gap:10px;padding-top:12px}
 .zc label{font-weight:700;font-size:.9rem;color:#0659AA;margin-top:6px}
@@ -303,7 +306,7 @@ ${k==='units'?'<small>Die oberste Einheit ist die Vorauswahl bei neuem Material.
 const T={week:'Wochenbericht',menu:'Zeiterfassung',write:'Stunden schreiben',over:'Übersicht',proj:'Projekte & Lieferanten',stat:'Auswertung',plc:'Einstellungen'};
 function render(){saveDraft();titleEl.textContent=view==='plc'&&S.sv?SV[S.sv][0]:T[view];root.innerHTML={menu:rMenu,write:rWrite,over:rOver,proj:rProj,week:rWeek,stat:rStat,plc:rPlc}[view]();window.scrollTo(0,0)}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&view==='write'&&S.e&&!S.e.run&&S.opened&&S.opened!==iso(new Date())){S.e=newEntry();reloadDay();S.opened=iso(new Date());render()}});
-function go(v){view=v;if(v==='stat')S.f=S.f||statDef();if(v==='plc'){S.sv=null;S.lq='';S.ln=''}if(v==='week')S.wk=S.wk||monday(iso(new Date()));S.pick=null;S.pm=false;S.ret=null;S.prev=false;S.le=null;S.rc=null;S.tm=false;S.ended=0;S.snapId=null;if(v==='write'&&!S.e){const dr=loadDraft();if(dr){S.e=dr;toastMsg('↺ Eingaben wiederhergestellt')}else{S.e=newEntry();reloadDay()}}if(v==='write')restoreRun();if(v==='write'){S.opened=iso(new Date());migrateMat()}if(v==='over'){S.mode=S.mode||'month';S.sel=S.sel||iso(new Date());S.cur=S.sel}if(v==='proj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.q='';S.pv='list';S.pt=S.pt||'kunden'}render()}
+function go(v){view=v;if(v==='stat')S.f=S.f||statDef();if(v==='plc'){S.sv=null;S.lq='';S.ln=''}if(v==='week')S.wk=S.wk||monday(iso(new Date()));S.pick=null;S.pm=false;S.ret=null;S.prev=false;S.le=null;S.rc=null;S.tm=false;S.ended=0;S.snapId=null;if(v==='write'&&!S.e){const dr=loadDraft();if(dr){S.e=dr;toastMsg('↺ Eingaben wiederhergestellt')}else{S.e=newEntry();reloadDay(false,true);if(!S.e.id&&D.entries.some(x=>x.date===S.e.date&&!isAbs(x.projectId)))toastMsg('Weiterer Eintrag für heute · Start '+S.e.start)}}if(v==='write')restoreRun();if(v==='write'){S.opened=iso(new Date());migrateMat()}if(v==='over'){S.mode=S.mode||'month';S.sel=S.sel||iso(new Date());S.cur=S.sel}if(v==='proj'){S.p={id:0,name:'',nr:'',client:'',addr:'',tel:'',wb:{name:1,client:1,addr:1,tel:0}};S.q='';S.pv='list';S.pt=S.pt||'kunden'}render()}
 const nowM=()=>{const n=new Date();return Math.min(1439,Math.round((n.getHours()*60+n.getMinutes())/D.step)*D.step)};
 function fb(msg,kind,col){try{if(D.vib!==0&&navigator.vibrate)navigator.vibrate(kind===2?[70,80,70]:60)}catch(x){}
 if(D.snd){try{const A=window.AudioContext||window.webkitAudioContext,c=new A(),o=c.createOscillator(),g=c.createGain();o.frequency.value=kind===2?660:880;g.gain.value=.08;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+(kind===2?.25:.15));setTimeout(()=>c.close(),600)}catch(x){}}
