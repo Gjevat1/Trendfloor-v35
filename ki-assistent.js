@@ -289,7 +289,7 @@ const TrendfloorKI = (() => {
           ${history.map(m => '<div style="background:' + (m.who === 'Du' ? '#e7f1ff' : '#fff') + ';border:1px solid #e2e8ef;border-radius:12px;padding:10px;margin:8px 0;white-space:pre-line' + (m.pending ? ';color:#536273' : '') + '"><b>' + esc(m.who) + '</b><br>' + esc(m.text) + '</div>').join('')}
         </div>
         <form id="tfki-form" style="display:flex;gap:8px">
-          <input id="tfki-input" autocomplete="off" placeholder="Frage Xhevat, er weiß alles …" style="flex:1;min-width:0;border:1px solid #cbd5df;border-radius:12px;padding:12px;font:inherit">
+          <input id="tfki-input" autocomplete="off" placeholder="Frage Xhevat, er weiß alles" style="flex:1;min-width:0;border:1px solid #cbd5df;border-radius:12px;padding:12px;font:inherit">
           <button class="zb g" type="submit" style="min-width:76px">Senden</button>
         </form>
       </section>`;
@@ -303,7 +303,7 @@ const TrendfloorKI = (() => {
       const old = getCfg(), url = (root.querySelector('#tfki-url').value || '').trim(), code = (root.querySelector('#tfki-code').value || '').trim() || old.code;
       setCfg({ url, code }); showCfg = false;
       if (aiReady()) ask('Sag kurz Hallo und nenne mir, wie viele Projekte du siehst.', false);
-      else { history.push({ who: 'Xhevat', text: 'Die Server-Adresse muss mit https:// beginnen, und der Zugangscode darf nicht leer sein.' }); render(); }
+      else { history.push({ who: 'Trendfloor', text: 'Die Server-Adresse muss mit https:// beginnen, und der Zugangscode darf nicht leer sein.' }); render(); }
     });
     const cl = root.querySelector('#tfki-clear'); if (cl) cl.addEventListener('click', () => { setCfg({}); showCfg = false; render(); });
     if (focusInput) { focusInput = false; const i = root.querySelector('#tfki-input'); if (i) i.focus(); }
@@ -312,10 +312,10 @@ const TrendfloorKI = (() => {
   async function ask(q, forceLocal) {
     if (busy) return;
     const useAI = !forceLocal && aiReady() && !/^(hilfe|help|\?|struktur)$/i.test(q.trim());
-    if (!useAI) { history.push({ who: 'Du', text: q }, { who: 'Xhevat', text: safeLocal(q) }); trimHistory(); render(); return; }
+    if (!useAI) { history.push({ who: 'Du', text: q }, { who: 'Trendfloor', text: safeLocal(q) }); trimHistory(); render(); return; }
     const prior = history.slice(-6);
     busy = true;
-    history.push({ who: 'Du', text: q }, { who: 'Xhevat', text: 'Ich denke nach …', pending: true });
+    history.push({ who: 'Du', text: q }, { who: 'Trendfloor', text: 'Ich denke nach …', pending: true });
     render();
     let a;
     try { a = await callKI(q, prior); }
